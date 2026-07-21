@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Premium Ads Bot Mini App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ÜMUMİ DİZAYN AYARLARI */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #080808;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+            user-select: none;
+        }
+
+        /* 9:16 Telegram Mobil Ekranı */
+        .phone-screen {
+            width: 100%;
+            max-width: 420px;
+            margin: 0 auto;
+            box-sizing: border-box;
+            height: 100vh;
+            height: 100dvh;
+            background: linear-gradient(135deg, #111111 0%, #1a140a 50%, #0a0a0a 100%);
+            border: 2px solid #d4af37;
+            border-radius: 24px;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(212, 175, 55, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        /* ÜST BAR: Balans və Dil */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            height: 40px;
+            z-index: 10;
+        }
+
+        .lang-selector {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            padding: 5px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .lang-selector:hover { background: rgba(212, 175, 55, 0.1); }
+        .lang-selector option { background: #111; color: #fff; }
+
+        .balance-card {
+            background: linear-gradient(135deg, #2a2212 0%, #17130a 100%);
+            border: 1px solid #d4af37;
+            padding: 8px 16px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Zərif və Sabit Parlayan Qığılcım Animasiyası */
+        .sparkles {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(circle, rgba(212, 175, 55, 0.6) 1px, transparent 1px);
+            background-size: 15px 15px;
+            opacity: 0.25;
+            animation: windSparks 4s linear infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+        @keyframes windSparks {
+            0% { background-position: 0 0; opacity: 0.1; }
+            50% { opacity: 0.35; }
+            100% { background-position: 30px -15px; opacity: 0.1; }
+        }
+
+        .balance-card i { color: #ffbc00; font-size: 16px; position: relative; z-index: 2; }
+        .balance-text { font-size: 14px; font-weight: 600; color: #ffbc00; position: relative; z-index: 2; }
+
+        /* EKRANLARIN İDARƏ EDİLMƏSİ */
+        .main-content {
+            flex: 1;
+            position: relative;
+            margin: 15px 0;
+            overflow-y: auto;
+        }
+
+        .main-content::-webkit-scrollbar { width: 0px; }
+
+        .page {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            animation: fadeIn 0.4s ease forwards;
+            padding: 4px 0;
+        }
+
+        .page.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* DÜYMƏ ANİMASİYALARI VE STİLLƏRİ */
+        .premium-btn {
+            width: 85%;
+            padding: 16px;
+            border: none;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-top: 12px;
+        }
+
+        .premium-btn:hover:not(:disabled) { transform: translateY(-4px); }
+        .premium-btn:active:not(:disabled) { transform: translateY(-1px); }
+        
+        /* Deaktiv (Limiti bitmiş) düymə stili */
+        .premium-btn:disabled {
+            background: #222 !important;
+            color: #555 !important;
+            border: 1px solid #333 !important;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-gold { background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%); color: #000; }
+        .btn-silver { background: linear-gradient(135deg, #e0e0e0 0%, #888888 100%); color: #000; }
+        .btn-dark { background: rgba(255, 255, 255, 0.02); color: #d4af37; border: 1.5px solid #d4af37; }
+        .btn-outline { background: rgba(255, 255, 255, 0.02); color: #d4af37; border: 1.5px solid #d4af37; }
+
+        /* Limit Sayğacı */
+        .limit-text {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* PROFİL VƏ AVATAR AYARLARI */
+        .avatar-wrapper {
+            position: relative;
+            margin-bottom: 15px;
+            margin-top: 5px;
+        }
+
+        .profile-avatar {
+            width: 85px;
+            height: 85px;
+            background: #1a1a1a;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 44px;
+            color: #d4af37;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            overflow: hidden;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .edit-pen {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            background: #d4af37;
+            color: #000;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            cursor: pointer;
+            border: 2px solid #080808;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            transition: all 0.2s;
+        }
+        .edit-pen:hover { transform: scale(1.1); }
+
+        /* Çərçivə Sinifləri (Profil üçün) */
+        .frame-none { border: 2.5px solid #333; }
+        .frame-blue { border: 3.5px solid #00aaff; box-shadow: 0 0 12px rgba(0,170,255,0.6); }
+        .frame-red { border: 3.5px solid #ff3333; box-shadow: 0 0 12px rgba(255,51,51,0.6); }
+        .frame-vip-gold { border: 4px solid #ffd700; box-shadow: 0 0 18px #ffd700; animation: pulseGold 2s infinite; }
+        .frame-vip-diamond { border: 4px solid #00ffff; box-shadow: 0 0 20px #00ffff, inset 0 0 10px #00ffff; }
+
+        @keyframes pulseGold {
+            0% { box-shadow: 0 0 10px #ffd700; }
+            50% { box-shadow: 0 0 22px #ffd700; }
+            100% { box-shadow: 0 0 10px #ffd700; }
+        }
+
+        /* SIRALAMA (LEADERBOARD) */
+        .leaderboard-list {
+            width: 95%;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 3px;
+        }
+        .leaderboard-list::-webkit-scrollbar { width: 0px; }
+
+        .lb-item {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            border: 1px solid rgba(212, 175, 55, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .lb-item:hover {
+            transform: translateY(-1px);
+            border-color: rgba(251, 191, 36, 0.35);
+            box-shadow: 0 8px 22px rgba(0,0,0,0.24);
+        }
+        .lb-item::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+            transform: translateX(-120%);
+            transition: transform 0.6s ease;
+        }
+        .lb-item:hover::before {
+            transform: translateX(120%);
+        }
+
+        .lb-rank {
+            font-weight: 700;
+            width: 30px;
+            text-align: center;
+        }
+
+        .lb-user {
+            flex: 1;
+            text-align: left;
+            margin-left: 10px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+        .lb-user span {
+            font-weight: 600;
+            color: #f8fafc;
+            letter-spacing: 0.01em;
+        }
+
+        .lb-avatar-circle {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.12);
+            box-shadow: 0 0 0 2px rgba(212,175,55,0.16), 0 8px 20px rgba(0,0,0,0.25);
+            flex-shrink: 0;
+            padding: 2px;
+        }
+        .lb-avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .lb-score {
+            color: #d4af37;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        /* İlk 3 Medal Rəngləri */
+        .rank-1 .lb-rank { color: #ffd700; font-size: 18px; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+        .rank-2 .lb-rank { color: #c0c0c0; font-size: 16px; text-shadow: 0 0 10px rgba(192,192,192,0.5); }
+        .rank-3 .lb-rank { color: #cd7f32; font-size: 15px; text-shadow: 0 0 10px rgba(205,127,50,0.5); }
+        
+        /* Bizim Sıralama Kartımız */
+        .rank-me {
+            border: 1.5px solid #d4af37;
+            background: rgba(212, 175, 55, 0.08);
+            margin-top: 12px;
+        }
+
+        /* REFERAL TƏRƏQQİ (Progress Bar) */
+        .ref-progress-container {
+            width: 90%;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 22px rgba(0,0,0,0.22);
+            transition: transform 0.2s ease, border-color 0.25s ease;
+        }
+        .ref-progress-container:hover {
+            transform: translateY(-1px);
+            border-color: rgba(251, 191, 36, 0.35);
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #222;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d4af37, #ffd700);
+            width: 90%; /* 9/10 tərəqqisi üçün */
+            transition: width 0.5s ease;
+        }
+
+        /* HESAB BÖLMƏSİ İNPUTLAR */
+        .profile-container { width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .input-field {
+            width: 85%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 13px;
+            outline: none;
+        }
+        .input-field:focus { border-color: #d4af37; box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
+
+        /* MODAL VƏ POPUP SİSTEMİ */
+        .popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: #14110b;
+            border: 1px solid #d4af37;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+            text-align: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            width: 85%;
+        }
+        .popup.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+
+        /* Alt menyudan açılan modal */
+        .modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 101;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .modal.show { display: flex; opacity: 1; }
+        .modal-content {
+            background: #14110b;
+            border: 1px solid #d4af37;
+            padding: 20px;
+            border-radius: 18px;
+            width: 85%;
+            text-align: center;
+        }
+        .menu-item {
+            padding: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background 0.2s;
+        }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:hover { background: rgba(212, 175, 55, 0.05); color: #d4af37; }
+
+        /* Çərçivə Mağazası Siyahısı */
+        .frame-shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.02);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* REFERAL LİNK QUTUSU */
+        .ref-box {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(212, 175, 55, 0.2); padding: 12px;
+            border-radius: 12px; width: 90%; font-size: 12px; color: #ccc; margin: 15px 0; word-break: break-all;
+            backdrop-filter: blur(10px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 22px rgba(0,0,0,0.18);
+        }
+
+        /* AŞAĞI NAVİQASİYA */
+        .bottom-nav {
+            background: rgba(10, 10, 10, 0.9); border: 1px solid rgba(212, 175, 55, 0.25);
+            backdrop-filter: blur(15px); border-radius: 20px; display: flex; justify-content: space-around;
+            align-items: center; padding: 10px 2px; width: 100%; box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.6);
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none;
+            color: #666; cursor: pointer; flex: 1; border-radius: 12px; padding: 4px 2px;
+            position: relative; transition: transform 0.25s ease, color 0.25s ease, background 0.25s ease;
+        }
+        .nav-item:hover {
+            color: #fbbf24;
+            transform: translateY(-2px);
+            background: rgba(251, 191, 36, 0.08);
+        }
+        .nav-item.active {
+            color: #d4af37; transform: translateY(-2px); text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+            background: rgba(251, 191, 36, 0.1);
+            box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.16);
+        }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 9px; font-weight: 500; }
+
+        .wheel-page {
+            justify-content: center;
+            gap: 16px;
+        }
+        .wheel-info {
+            font-size: 11px;
+            color: #cbd5e1;
+            text-align: center;
+            line-height: 1.6;
+            max-width: 250px;
+            margin-bottom: 6px;
+        }
+        .wheel-graphic {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            border: 2px dashed rgba(212,175,55,0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: wheelPulse 3.2s ease-in-out infinite;
+            box-shadow: inset 0 0 0 12px rgba(255,255,255,0.03), 0 0 20px rgba(212,175,55,0.12);
+        }
+        .wheel-graphic::before,
+        .wheel-graphic::after {
+            content: "";
+            position: absolute;
+            inset: 18px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .wheel-graphic::after {
+            inset: 42px;
+            border-color: rgba(212,175,55,0.25);
+        }
+        .wheel-center {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fbbf24 0%, #b45309 100%);
+            box-shadow: 0 0 20px rgba(251,191,36,0.3);
+        }
+        .wheel-user-chip {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(212,175,55,0.25);
+            background: rgba(255,255,255,0.05);
+            color: #f8fafc;
+            font-size: 11px;
+            min-width: 180px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 20px rgba(0,0,0,0.2);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .wheel-user-chip:hover {
+            transform: translateY(-1px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 24px rgba(212,175,55,0.14);
+        }
+        @keyframes wheelPulse {
+            0%, 100% { transform: scale(1); box-shadow: inset 0 0 0 12px rgba(255,255,255,0.03), 0 0 20px rgba(212,175,55,0.12); }
+            50% { transform: scale(1.02); box-shadow: inset 0 0 0 14px rgba(255,255,255,0.05), 0 0 24px rgba(212,175,55,0.2); }
+        }
+
+        /* YÜKLƏNMƏ EKRANI (2 saniyəlik gözləmə üçün) */
+        .loader-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 99;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 24px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(212, 175, 55, 0.1);
+            border-top-color: #d4af37;
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            margin-bottom: 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        :root {
+            --bg-1: #04060a;
+            --bg-2: #0d1326;
+            --panel: rgba(255,255,255,0.06);
+            --panel-strong: rgba(255,255,255,0.09);
+            --border: rgba(255,255,255,0.14);
+            --accent: #8b5cf6;
+            --accent-2: #22d3ee;
+            --accent-gold: #fbbf24;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(139,92,246,0.28), transparent 26%),
+                radial-gradient(circle at bottom right, rgba(34,211,238,0.18), transparent 32%),
+                linear-gradient(135deg, var(--bg-1), var(--bg-2));
+            color: var(--text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(255,255,255,.08) 0 1px, transparent 1px),
+                radial-gradient(circle at 80% 30%, rgba(255,255,255,.05) 0 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: .25;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        .phone-screen {
+            background: linear-gradient(145deg, rgba(15,17,24,0.98), rgba(10,12,18,0.95));
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 28px;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.03) inset,
+                0 25px 60px rgba(0,0,0,0.6),
+                0 0 35px rgba(139,92,246,0.18);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(18px);
+        }
+
+        .phone-screen::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top right, rgba(251,191,36,0.16), transparent 24%),
+                radial-gradient(circle at bottom left, rgba(34,211,238,0.12), transparent 20%);
+            pointer-events: none;
+        }
+
+        .top-bar {
+            position: relative;
+            z-index: 3;
+        }
+
+        .lang-selector {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border);
+            color: var(--text);
+            backdrop-filter: blur(8px);
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(139,92,246,0.16));
+            border: 1px solid rgba(251,191,36,0.35);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 10px 25px rgba(0,0,0,0.25);
+        }
+
+        .balance-text {
+            color: #fde68a;
+            letter-spacing: .03em;
+        }
+
+        .main-content {
+            padding: 4px 2px 6px;
+        }
+
+        .page h2 {
+            color: #f8fafc;
+            text-shadow: 0 0 20px rgba(139,92,246,0.16);
+        }
+
+        .page p {
+            color: var(--muted);
+        }
+
+        .premium-btn {
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.28);
+            border: 1px solid rgba(255,255,255,.12);
+        }
+
+        .premium-btn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.16) 50%, transparent 100%);
+            transform: translateX(-120%);
+            transition: transform .7s ease;
+        }
+
+        .premium-btn:hover:not(:disabled)::before {
+            transform: translateX(120%);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%);
+            color: #fff8e1;
+            box-shadow: 0 12px 30px rgba(251,191,36,0.18);
+        }
+
+        .btn-silver {
+            background: linear-gradient(135deg, #e2e8f0 0%, #64748b 100%);
+            color: #0f172a;
+        }
+
+        .btn-dark {
+            background: rgba(255,255,255,0.05);
+            color: #cbd5e1;
+            border-color: rgba(255,255,255,.16);
+        }
+
+        .btn-outline {
+            background: rgba(255,255,255,0.04);
+            color: #e2e8f0;
+            border-color: rgba(255,255,255,.16);
+        }
+
+        .profile-avatar {
+            background:
+                radial-gradient(circle at 30% 20%, rgba(255,255,255,0.22), transparent 20%),
+                linear-gradient(135deg, rgba(255,255,255,.06), rgba(11,15,23,0.9));
+            border: 1px solid rgba(255,255,255,.12);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,.12);
+        }
+
+        .input-field {
+            background: rgba(255,255,255,0.055);
+            border: 1px solid rgba(255,255,255,.12);
+            color: var(--text);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+        }
+
+        .input-field:focus {
+            box-shadow: 0 0 0 3px rgba(139,92,246,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+
+        .popup, .modal-content {
+            background: linear-gradient(145deg, rgba(12,15,23,0.98), rgba(8,10,16,0.96));
+            border: 1px solid rgba(255,255,255,.12);
+            box-shadow: 0 20px 55px rgba(0,0,0,0.55);
+        }
+
+        .menu-item {
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .menu-item:hover {
+            background: rgba(139,92,246,.18);
+            color: #f5e8ff;
+        }
+
+        .frame-shop-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,.08);
+        }
+
+        .bottom-nav {
+            background: rgba(7,10,18,0.9);
+            border: 1px solid rgba(255,255,255,.1);
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.4);
+        }
+
+        .nav-item.active {
+            color:#fbbf24;
+            text-shadow: 0 0 12px rgba(251,191,36,0.35);
+        }
+
+        .ref-progress-container, .ref-box {
+            border-color: rgba(255,255,255,.12);
+            background: rgba(255,255,255,.04);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-screen">
+        
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="spinner"></div>
+            <p id="loader-title" style="color: #d4af37; font-size: 14px; font-weight: 500;" data-translate="loadingAd">Reklam yoxlanılır...</p>
+            <p id="loader-wait" style="color: #777; font-size: 11px; margin-top: 5px;" data-translate="loadingWait">Zəhmət olmasa 2 saniyə gözləyin</p>
+        </div>
+
+        <div class="top-bar">
+            <select class="lang-selector" onchange="changeLanguage(this.value)">
+                <option value="az">AZ</option>
+                <option value="en">EN</option>
+                <option value="tr">TR</option>
+                <option value="ru">RU</option>
+            </select>
+            <div class="balance-card">
+                <div class="sparkles"></div>
+                <i class="fa-solid fa-coins"></i>
+                <span id="balance-display" class="balance-text">0.00 COIN</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            
+            <div id="page-home" class="page active">
+                <h2 style="font-size: 20px; margin-bottom: 5px;" data-translate="title">Qazanmağa Başla</h2>
+                <p style="font-size: 11px; color:#888; margin-bottom: 15px;" data-translate="subtitle">Hər reklamdan random 5 - 6 COIN qazan!</p>
+                
+                <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 10px;">
+                    <button id="ad-btn-1" class="premium-btn btn-gold" onclick="watchAd(1, 'https://omg10.com/4/10661373')">
+                        <i class="fa-solid fa-play"></i> <span data-translate="ad1">Premium Reklam 1</span>
+                    </button>
+                    <span id="limit-label-1" class="limit-text">Limit: 50 / 50 qaldı</span>
+                </div>
+
+                <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+                    <button id="ad-btn-2" class="premium-btn btn-silver" onclick="watchAd(2, 'https://www.effectivecpmnetwork.com/z2yrddne?key=50deee3d8e0468573b3a29a443d83850')">
+                        <i class="fa-solid fa-bolt"></i> <span data-translate="ad2">Premium Reklam 2</span>
+                    </button>
+                    <span id="limit-label-2" class="limit-text">Limit: 50 / 50 qaldı</span>
+                </div>
+            </div>
+
+            <div id="page-leaderboard" class="page" style="justify-content: flex-start;">
+                <h3 style="color:#d4af37; margin-bottom:12px; font-size:16px;" data-translate="leaderboard"><i class="fa-solid fa-trophy"></i> Qlobal Sıralama</h3>
+                <div class="leaderboard-list" id="leaderboard-container">
+                    </div>
+            </div>
+
+            <div id="page-referral" class="page">
+                <i class="fa-solid fa-rocket" style="font-size: 36px; color: #d4af37; margin-bottom: 10px;"></i>
+                <h3 style="color: #d4af37;" data-translate="refTitle">Sürətli Dost Bonusu</h3>
+                <p style="font-size: 11px; color: #aaa; margin: 10px 15px;" data-translate="refDesc">Dostunu dəvət et, o cəmi 10 reklam izləyən kimi balansına 100 xal əlavə olunacaq.</p>
+    
+                <div class="ref-box" id="ref-link">Yüklənir...</div>
+
+                <button class="premium-btn btn-gold" onclick="copyInviteLink()">
+                    <i class="fa-solid fa-copy"></i> <span data-translate="copy">Kopyala</span>
+                </button>
+                <button class="premium-btn btn-outline" onclick="openShareOptions()">
+                    <i class="fa-solid fa-share-nodes"></i> <span data-translate="share">Paylaş</span>
+                </button>
+
+                <div id="referrals-list" style="margin-top: 15px; width: 90%; max-height: 150px; overflow-y: auto;">
+                    <p style="color: #aaa; font-size: 11px; text-align: center; margin: 0;">Hələ ki dəvət olunan dost yoxdur.</p>
+                </div>
+            </div>
+
+            <div id="page-account" class="page" style="justify-content: flex-start; padding-top:10px;">
+                <div class="profile-container">
+                    
+                    <div class="avatar-wrapper">
+                        <div id="user-avatar" class="profile-avatar frame-none">
+                            <i id="default-icon" class="fa-solid fa-user-astronaut"></i>
+                            <img id="avatar-img" src="" alt="avatar">
+                        </div>
+                        <div class="edit-pen" onclick="openProfileMenu()"><i class="fa-solid fa-pen"></i></div>
+                    </div>
+                    
+                    <div id="register-section" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+                        <p style="font-size: 12px; color: #ccc; margin-bottom: 15px;" data-translate="registerDesc">Məlumatlarınızı qorumaq üçün qeydiyyatdan keçin.</p>
+                        <input type="text" id="reg-username" class="input-field" placeholder="İstifadəçi adı">
+                        <input type="password" id="reg-password" class="input-field" placeholder="Şifrə təyin et">
+                        <button class="premium-btn btn-gold" onclick="registerUser()" data-translate="regBtn">Qeydiyyatdan Keç</button>
+                    </div>
+
+                    <div id="withdraw-section" style="width: 100%; display: none; flex-direction: column; align-items: center;">
+                        <h3 id="welcome-user-text" style="color: #fff; margin-bottom: 15px;" data-translate="welcomeGuest">Xoş gəldin!</h3>
+                        <div style="width:100%; border-top:1px dashed rgba(212,175,55,0.3); margin-bottom:15px;"></div>
+                        <h4 style="color:#d4af37; font-size:14px; margin-bottom:10px;" data-translate="withdrawTitle"><i class="fa-solid fa-wallet"></i> Pul Çəkim Tələbi</h4>
+                        <p style="font-size: 10px; color:#888; margin-bottom:10px;" data-translate="withdrawLimit">Minimum limit: 12,500 COIN (= 1.00$)</p>
+                        <input type="number" class="input-field" id="withdraw-amount" min="12500" step="100" placeholder="Çəkmək istədiyiniz məbləğ (minimum 12,500 COIN)">
+                        <input type="text" class="input-field" id="card-input" placeholder="Kart nömrəsi (16 rəqəm) və ya TRC20">
+                        <button class="premium-btn btn-gold" style="padding:10px; font-size:14px; width:85%;" onclick="requestWithdraw()" data-translate="withdrawBtn">
+                            Balansı Çək
+                        </button>
+                        <button class="premium-btn btn-dark" style="padding:10px; font-size:12px; width:50%; margin-top:20px;" onclick="logoutUser()" data-translate="logout">
+                            Hesabdan Çıx
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="global-popup" class="popup">
+                <i id="popup-icon" class="fa-solid fa-circle-check" style="color: #d4af37; font-size: 28px; margin-bottom: 8px;"></i>
+                <h3 id="popup-title" style="font-size: 15px; color: #fff;"></h3>
+                <p id="popup-text" style="font-size: 12px; margin-top: 4px; color:#ccc;"></p>
+            </div>
+
+            <div id="reg-warning-popup" class="popup" style="padding: 25px 20px;">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #ffcc00; font-size: 30px; margin-bottom: 10px;"></i>
+                <h3 id="warning-title" style="color:#fff; font-size: 16px;"></h3>
+                <p id="warning-text" style="color:#ccc; font-size:12px; margin:10px 0 20px 0;"></p>
+                <div style="display:flex; gap:10px; justify-content:center; width: 100%;">
+                    <button id="warning-cancel" class="premium-btn btn-outline" style="padding:10px; width:50%; margin:0;" onclick="closeModals()"></button>
+                    <button id="warning-ok" class="premium-btn btn-gold" style="padding:10px; width:50%; margin:0;" onclick="goToRegister()"></button>
+                </div>
+            </div>
+
+            <div id="share-popup" class="popup" style="padding: 25px 20px;">
+                <h3 id="share-title" style="color:#fff; font-size: 16px; margin-bottom: 15px;"></h3>
+                <div style="display:flex; gap:10px; justify-content:center; width: 100%;">
+                    <button class="premium-btn" style="background:#25D366; color:#fff; width:50%; margin:0; padding:12px;" onclick="shareToApp('whatsapp')">
+                        <i class="fa-brands fa-whatsapp" style="font-size:20px;"></i> WhatsApp
+                    </button>
+                    <button class="premium-btn" style="background:#0088cc; color:#fff; width:50%; margin:0; padding:12px;" onclick="shareToApp('telegram')">
+                        <i class="fa-brands fa-telegram" style="font-size:20px;"></i> Telegram
+                    </button>
+                </div>
+                <button id="share-close" class="premium-btn btn-dark" style="margin-top:15px; width:100%; padding:10px;" onclick="closeModals()"></button>
+            </div>
+
+            <div id="profile-menu-modal" class="modal">
+                <div class="modal-content">
+                    <h3 style="color:#d4af37; margin-bottom: 15px; font-size: 16px;">Profil Ayarları</h3>
+                    <div class="menu-item" onclick="openFrameShop()"><i class="fa-solid fa-ring"></i> Çərçivələr</div>
+                    <div class="menu-item" onclick="changePicture()"><i class="fa-solid fa-image"></i> Şəkli Dəyişdir</div>
+                    <div class="menu-item" onclick="deletePicture()" style="color: #ff4d4d;"><i class="fa-solid fa-trash"></i> Şəkli Sil</div>
+                    <button id="profile-close" class="premium-btn btn-outline" style="margin-top:15px; width:100%; padding: 10px;" onclick="closeModals()"></button>
+                    
+                    <input type="file" id="file-input" style="display: none;" accept="image/*" onchange="previewImage(event)">
+                </div>
+            </div>
+
+            <div id="frame-shop-modal" class="modal">
+                <div class="modal-content" style="padding: 15px;">
+                    <h3 style="color:#d4af37; margin-bottom: 15px; font-size: 16px;">Çərçivə Mağazası</h3>
+                    
+                    <div class="frame-shop-item">
+                        <span style="font-size: 13px;"><i class="fa-solid fa-circle" style="color:#00aaff;"></i> Mavi Çərçivə</span>
+                        <button id="buy-btn-blue" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="buyFrame('frame-blue', 2)">2 COIN</button>
+                    </div>
+                    <div class="frame-shop-item">
+                        <span style="font-size: 13px;"><i class="fa-solid fa-circle" style="color:#ff3333;"></i> Qırmızı Çərçivə</span>
+                        <button id="buy-btn-red" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="buyFrame('frame-red', 2)">2 COIN</button>
+                    </div>
+                    <div class="frame-shop-item">
+                        <span style="font-size: 13px; color:#ffd700;"><i class="fa-solid fa-crown"></i> VIP Qızıl</span>
+                        <button id="buy-btn-gold" class="premium-btn btn-gold" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="buyFrame('frame-vip-gold', 10)">10 COIN</button>
+                    </div>
+                    <div class="frame-shop-item">
+                        <span style="font-size: 13px; color:#00ffff; text-shadow: 0 0 5px #00ffff;"><i class="fa-regular fa-gem"></i> VIP Almaz</span>
+                        <button id="buy-btn-diamond" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; border-color:#00ffff; color:#00ffff; font-size:12px;" onclick="buyFrame('frame-vip-diamond', 20)">20 COIN</button>
+                    </div>
+
+                    <button id="frame-close" class="premium-btn" style="background:#333; color:#fff; margin-top:15px; width:100%; padding: 10px;" onclick="closeModals()"></button>
+                </div>
+            </div>
+
+            <div id="page-wheel" class="page wheel-page">
+                <p class="wheel-info" data-translate="wheelInfo">Qoşulma haqqı: 20 Coin.
+Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
+                <div class="wheel-graphic">
+                    <div class="wheel-center"></div>
+                </div>
+                <div id="wheel-user-chip" class="wheel-user-chip"></div>
+                <button class="premium-btn btn-gold" style="width: 78%; padding: 10px; margin-top: 6px;" onclick="joinWheel()" data-translate="joinWheelBtn">-20 Coin</button>
+            </div>
+
+        </div>
+
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchPage('home', this)"><i class="fa-solid fa-house"></i><span data-translate="navHome">Ana Səhifə</span></button>
+            <button class="nav-item" onclick="switchPage('leaderboard', this); loadLeaderboard();"><i class="fa-solid fa-trophy"></i><span data-translate="navLeaderboard">Sıralama</span></button>
+            <button class="nav-item" onclick="switchPage('wheel', this); renderWheelParticipants();"><i class="fa-solid fa-arrows-rotate"></i><span data-translate="navWheel">Çarx</span></button>
+            <button class="nav-item" onclick="switchPage('referral', this)"><i class="fa-solid fa-rocket"></i><span data-translate="navBonus">Bonus</span></button>
+            <button class="nav-item" id="nav-account" onclick="switchPage('account', this)"><i class="fa-solid fa-user"></i><span data-translate="navAccount">Hesab</span></button>
+        </nav>
+
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        // Telegram tərəfindən idarəetmə üçün WebApp obyekti
+        const tg = window.Telegram?.WebApp;
+        if (tg) tg.expand(); // Tətbiqi tam ekran edir
+
+        // DİL TƏRCÜMƏ SƏNƏDİ
+        const translations = {
+            az: {
+                title: "Qazanmağa Başla",
+                subtitle: "Hər reklamdan random 5 - 6 COIN qazan!",
+                ad1: "Premium Reklam 1",
+                ad2: "Premium Reklam 2",
+                leaderboard: "Qlobal Sıralama",
+                refTitle: "Sürətli Dost Bonusu",
+                refDesc: "Dostunu dəvət et, o cəmi 10 reklam izləyən kimi anında +100 COIN qazan!",
+                copy: "Kopyala",
+                share: "Paylaş",
+                registerDesc: "Məlumatlarınızı qorumaq üçün qeydiyyatdan keçin.",
+                username: "İstifadəçi adı",
+                password: "Şifrə təyin et",
+                regBtn: "Qeydiyyatdan Keç",
+                withdrawTitle: "Pul Çəkim Tələbi",
+                withdrawLimit: "Minimum limit: 12,500 COIN (= 1.00$)",
+                withdrawAmountPlaceholder: "Çəkmək istədiyiniz məbləğ (minimum 12,500 COIN)",
+                cardPlaceholder: "Kart nömrəsi (16 rəqəm) və ya TRC20",
+                withdrawBtn: "Balansı Çək",
+                logout: "Hesabdan Çıx",
+                navHome: "Ana Səhifə",
+                navLeaderboard: "Sıralama",
+                navBonus: "Bonus",
+                navAccount: "Hesab",
+                navWheel: "Çarx",
+                wheelInfo: "Çarx bölməsi iştirakçılar üçün ayrılmış sahədir. Burada sadəcə iştirakçının adı görünür.",
+                joinWheelBtn: "-20 Coin",
+                welcomeGuest: "Xoş gəldin!",
+                welcomeUser: "Xoş gəldin, {name}!",
+                wheelParticipantLabel: "İştirakçı",
+                warningTitle: "Diqqət!",
+                warningText: "Qazandığınız COIN-lərin itməməsi üçün zəhmət olmasa ilk öncə hesab yaradın.",
+                warningCancel: "Ləğv Et",
+                warningOk: "OK",
+                shareTitle: "Harada paylaşaq?",
+                shareClose: "Bağla",
+                profileClose: "Bağla",
+                frameClose: "Geri",
+                loadingAd: "Reklam yoxlanılır...",
+                loadingWait: "Zəhmət olmasa 2 saniyə gözləyin"
+            },
+            en: {
+                title: "Start Earning",
+                subtitle: "Earn random 5 - 6 COIN from each ad!",
+                ad1: "Premium Ad 1",
+                ad2: "Premium Ad 2",
+                leaderboard: "Global Leaderboard",
+                refTitle: "Fast Friend Bonus",
+                refDesc: "Invite your friend! As soon as they watch 10 ads, you instantly get +100 COIN!",
+                copy: "Copy Link",
+                share: "Share",
+                registerDesc: "Please register to protect your earned coins.",
+                username: "Username",
+                password: "Set password",
+                regBtn: "Register Now",
+                withdrawTitle: "Request Withdrawal",
+                withdrawLimit: "Minimum limit: 12,500 COIN (= $1.00)",
+                withdrawAmountPlaceholder: "Amount you want to withdraw (minimum 12,500 COIN)",
+                cardPlaceholder: "Card number (16 digits) or TRC20",
+                withdrawBtn: "Withdraw Balance",
+                logout: "Logout",
+                navHome: "Home",
+                navLeaderboard: "Leaderboard",
+                navBonus: "Bonus",
+                navAccount: "Account",
+                navWheel: "Wheel",
+                wheelInfo: "The wheel section is reserved for participants. Only the participant name is shown here.",
+                joinWheelBtn: "-20 Coin",
+                welcomeGuest: "Welcome!",
+                welcomeUser: "Welcome, {name}!",
+                wheelParticipantLabel: "Participant",
+                warningTitle: "Attention!",
+                warningText: "To avoid losing your earned COINS, please create an account first.",
+                warningCancel: "Cancel",
+                warningOk: "OK",
+                shareTitle: "Where to share?",
+                shareClose: "Close",
+                profileClose: "Close",
+                frameClose: "Back",
+                loadingAd: "Verifying Ad...",
+                loadingWait: "Please wait 2 seconds"
+            },
+            tr: {
+                title: "Kazanmaya Başla",
+                subtitle: "Her reklamdan rastgele 5 - 6 COIN kazan!",
+                ad1: "Premium Reklam 1",
+                ad2: "Premium Reklam 2",
+                leaderboard: "Küresel Sıralama",
+                refTitle: "Hızlı Arkadaş Bonusu",
+                refDesc: "Arkadaşını davet et, o sadece 10 reklam izlediğinde anında +100 COIN kazan!",
+                copy: "Kopyala",
+                share: "Paylaş",
+                registerDesc: "Bilgilerinizi korumak için lütfen kayıt olun.",
+                username: "Kullanıcı adı",
+                password: "Şifre belirle",
+                regBtn: "Kayıt Ol",
+                withdrawTitle: "Para Çekme Talebi",
+                withdrawLimit: "Minimum limit: 12.500 COIN (= 1.00$)",
+                withdrawAmountPlaceholder: "Çekmek istediğiniz miktar (minimum 12.500 COIN)",
+                cardPlaceholder: "Kart numarası (16 hane) veya TRC20",
+                withdrawBtn: "Bakiyeyi Çek",
+                logout: "Hesaptan Çık",
+                navHome: "Ana Sayfa",
+                navLeaderboard: "Sıralama",
+                navBonus: "Bonus",
+                navAccount: "Hesap",
+                navWheel: "Çark",
+                wheelInfo: "Çark bölümü katılımcılar için ayrılmıştır. Burada yalnız katılımcının adı görünür.",
+                joinWheelBtn: "-20 Coin",
+                welcomeGuest: "Hoş geldiniz!",
+                welcomeUser: "Hoş geldiniz, {name}!",
+                wheelParticipantLabel: "Katılımcı",
+                warningTitle: "Dikkat!",
+                warningText: "Kazanılan COIN'lerin kaybolmaması için önce hesap oluşturun.",
+                warningCancel: "İptal",
+                warningOk: "Tamam",
+                shareTitle: "Nerede paylaşalım?",
+                shareClose: "Kapat",
+                profileClose: "Kapat",
+                frameClose: "Geri",
+                loadingAd: "Reklam Doğrulanıyor...",
+                loadingWait: "Lütfen 2 saniye bekleyin"
+            },
+            ru: {
+                title: "Начни Зарабатывать",
+                subtitle: "Получай случайные 5 - 6 COIN за каждый просмотр!",
+                ad1: "Премиум Реклама 1",
+                ad2: "Премиум Реклама 2",
+                leaderboard: "Глобальный Рейтинг",
+                refTitle: "Быстрый Дружеский Бонус",
+                refDesc: "Пригласи друга! Как только он посмотрит 10 реклам, ты мгновенно получишь +100 COIN!",
+                copy: "Копировать",
+                share: "Поделиться",
+                registerDesc: "Зарегистрируйтесь, чтобы защитить свои балансы.",
+                username: "Имя пользователя",
+                password: "Придумайте пароль",
+                regBtn: "Зарегистрироваться",
+                withdrawTitle: "Запрос на Вывод",
+                withdrawLimit: "Минимальный лимит: 12,500 COIN (= 1.00$)",
+                withdrawAmountPlaceholder: "Сумма, которую вы хотите вывести (минимум 12,500 COIN)",
+                cardPlaceholder: "Номер карты (16 цифр) или TRC20",
+                withdrawBtn: "Вывести Баланс",
+                logout: "Выйти из Аккаунта",
+                navHome: "Главная",
+                navLeaderboard: "Рейтинг",
+                navBonus: "Бонус",
+                navAccount: "Кабинет",
+                navWheel: "Колесо",
+                wheelInfo: "Раздел колеса предназначен для участников. Здесь отображается только имя участника.",
+                joinWheelBtn: "-20 Coin",
+                welcomeGuest: "Добро пожаловать!",
+                welcomeUser: "Добро пожаловать, {name}!",
+                wheelParticipantLabel: "Участник",
+                warningTitle: "Внимание!",
+                warningText: "Чтобы ваши заработанные COIN не пропали, сначала создайте аккаунт.",
+                warningCancel: "Отмена",
+                warningOk: "ОК",
+                shareTitle: "Куда поделиться?",
+                shareClose: "Закрыть",
+                profileClose: "Закрыть",
+                frameClose: "Назад",
+                loadingAd: "Проверка рекламы...",
+                loadingWait: "Пожалуйста, подождите 2 секунды"
+            }
+        };
+
+        let currentLang = localStorage.getItem('botLang') || 'az';
+
+        // Məlumatların bərpası
+        let balance = parseFloat(localStorage.getItem('botBalance'));
+        if (isNaN(balance)) {
+            balance = 0.00;
+            localStorage.setItem('botBalance', balance.toFixed(2));
+        }
+        let currentUser = localStorage.getItem('botUser') || null;
+        let userFrame = localStorage.getItem('userFrame') || 'frame-none';
+        let userAvatar = localStorage.getItem('userAvatar') || '';
+        let ownedFrames = (() => {
+            try {
+                const raw = JSON.parse(localStorage.getItem('ownedFrames'));
+                return Array.isArray(raw) && raw.length ? raw : ['frame-none'];
+            } catch (e) {
+                return ['frame-none'];
+            }
+        })();
+        let wheelParticipants = (() => {
+            try {
+                const raw = JSON.parse(localStorage.getItem('wheelParticipants'));
+                return Array.isArray(raw) ? raw : [];
+            } catch (e) {
+                return [];
+            }
+        })();
+
+        // Limitlər (günlük 50 limit)
+        let dailyLimits = JSON.parse(localStorage.getItem('dailyLimits')) || {
+            ad1: 50,
+            ad2: 50,
+            lastDate: new Date().toLocaleDateString()
+        };
+
+        // Başlanğıc sazlamaları
+        document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+        document.querySelector('.lang-selector').value = currentLang;
+        setLanguage(currentLang);
+        checkDateReset();
+        updateLimitLabels();
+        checkLoginState();
+        applySavedAvatarAndFrame();
+        renderWheelParticipants();
+
+        // DİL DƏYİŞMƏ FUNKSİYASI
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('botLang', lang);
+            setLanguage(lang);
+        }
+
+        function setLanguage(lang) {
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+
+            const langData = translations[lang] || translations.az;
+
+            // Input Placeholders tərcüməsi
+            const cardInput = document.getElementById('card-input');
+            if (cardInput) cardInput.placeholder = langData.cardPlaceholder || 'Kart nömrəsi';
+            const withdrawAmount = document.getElementById('withdraw-amount');
+            if (withdrawAmount) withdrawAmount.placeholder = langData.withdrawAmountPlaceholder || 'Çəkmək istədiyiniz məbləğ (minimum 12,500 COIN)';
+            const regUser = document.getElementById('reg-username');
+            if (regUser) regUser.placeholder = langData.username || 'İstifadəçi adı';
+            const regPass = document.getElementById('reg-password');
+            if (regPass) regPass.placeholder = langData.password || 'Şifrə';
+
+            const warningTitle = document.getElementById('warning-title');
+            if (warningTitle) warningTitle.innerText = translations[lang].warningTitle || warningTitle.innerText;
+            const warningText = document.getElementById('warning-text');
+            if (warningText) warningText.innerText = translations[lang].warningText || warningText.innerText;
+            const warningCancel = document.getElementById('warning-cancel');
+            if (warningCancel) warningCancel.innerText = translations[lang].warningCancel || warningCancel.innerText;
+            const warningOk = document.getElementById('warning-ok');
+            if (warningOk) warningOk.innerText = translations[lang].warningOk || warningOk.innerText;
+            const shareTitle = document.getElementById('share-title');
+            if (shareTitle) shareTitle.innerText = translations[lang].shareTitle || shareTitle.innerText;
+            const shareClose = document.getElementById('share-close');
+            if (shareClose) shareClose.innerText = translations[lang].shareClose || shareClose.innerText;
+            const profileClose = document.getElementById('profile-close');
+            if (profileClose) profileClose.innerText = translations[lang].profileClose || profileClose.innerText;
+            const frameClose = document.getElementById('frame-close');
+            if (frameClose) frameClose.innerText = translations[lang].frameClose || frameClose.innerText;
+
+            updateWelcomeText();
+            renderWheelParticipants();
+            displayMyReferrals();
+            updateLimitLabels();
+        }
+
+        // Tarix yoxlaması və 00:00-da limitlərin sıfırlanması
+        function checkDateReset() {
+            const today = new Date().toLocaleDateString();
+            if (dailyLimits.lastDate !== today) {
+                dailyLimits.ad1 = 50;
+                dailyLimits.ad2 = 50;
+                dailyLimits.lastDate = today;
+                localStorage.setItem('dailyLimits', JSON.stringify(dailyLimits));
+            }
+        }
+
+        // Limit göstəriciləri
+        function updateLimitLabels() {
+            checkDateReset();
+            const suffix = currentLang === 'az' ? 'qaldı' : (currentLang === 'tr' ? 'kaldı' : (currentLang === 'en' ? 'left' : 'осталось'));
+            
+            document.getElementById('limit-label-1').innerText = `Limit: ${dailyLimits.ad1} / 50 ${suffix}`;
+            document.getElementById('limit-label-2').innerText = `Limit: ${dailyLimits.ad2} / 50 ${suffix}`;
+
+            document.getElementById('ad-btn-1').disabled = (dailyLimits.ad1 <= 0);
+            document.getElementById('ad-btn-2').disabled = (dailyLimits.ad2 <= 0);
+            updateShopButtons();
+        }
+
+        // Səhifələri dəyişmək
+        function switchPage(pageName, element) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            const targetPage = document.getElementById('page-' + pageName);
+            if (targetPage) targetPage.classList.add('active');
+            if(element) element.classList.add('active');
+        }
+
+        // REKLAM İZLƏMƏ (2 saniyəlik real gözləmə)
+        function watchAd(adNum, adUrl) {
+            if (!currentUser) {
+                document.getElementById('reg-warning-popup').classList.add('show');
+                return;
+            }
+
+            checkDateReset();
+            const limitKey = 'ad' + adNum;
+            if (dailyLimits[limitKey] <= 0) {
+                showPopup("Limit Bitdi", "Bu günlük limitiniz bitmişdir.", false);
+                return;
+            }
+
+            // 1. Loader aktiv et
+            const loader = document.getElementById('loader-overlay');
+            loader.style.display = 'flex';
+
+            // 2. Reklam pəncərəsini aç
+            window.open(adUrl, '_blank');
+
+            // 3. 2 Saniyə sonra hesaba köçür
+            setTimeout(() => {
+                loader.style.display = 'none';
+
+                const randomAmount = (Math.random() * (6.00 - 5.00) + 5.00);
+                balance += randomAmount;
+                dailyLimits[limitKey] -= 1;
+                // Mövcud watchAd funksiyanın içərisinə əlavə ediləcək hissə:
+const referrerId = localStorage.getItem('invited_by');
+if (referrerId) {
+    let watchedCount = parseInt(localStorage.getItem('my_watched_ads_for_referrer') || "0");
+    
+    if (watchedCount < REQUIRED_ADS) {
+        watchedCount += 1;
+        localStorage.setItem('my_watched_ads_for_referrer', watchedCount.toString());
+
+        let referrals = JSON.parse(localStorage.getItem(`referrals_of_${referrerId}`)) || [];
+        let me = referrals.find(ref => ref.id === myUserId);
+        if (me) {
+            me.adsWatched = watchedCount;
+
+            if (watchedCount === REQUIRED_ADS && !me.rewarded) {
+                me.rewarded = true;
+                
+                // Əgər özümüzü test ediriksə, balansı artırır:
+                if (referrerId === myUserId) {
+                    balance += REFERRAL_BONUS_AMOUNT;
+                    const balanceDisplay = document.getElementById('user-balance');
+                    if (balanceDisplay) balanceDisplay.innerText = Math.round(balance);
+                }
+                console.log("Bonus şərti tamamlandı! Dəvət edənə 100 xal verildi.");
+            }
+            
+            localStorage.setItem(`referrals_of_${referrerId}`, JSON.stringify(referrals));
+        }
+    }
+}
+
+// Reklam izlənəndən sonra dəvət siyahımızı da ekranda yenidən render edirik
+displayMyReferrals();
+                localStorage.setItem('botBalance', balance);
+                localStorage.setItem('dailyLimits', JSON.stringify(dailyLimits));
+
+                document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+                updateLimitLabels();
+
+                showPopup("Uğurlu!", `+${randomAmount.toFixed(2)} COIN!`);
+            }, 2000);
+        }
+
+        function goToRegister() {
+            closeModals();
+            switchPage('account', document.getElementById('nav-account'));
+        }
+
+        function renderWheelParticipants() {
+            const chip = document.getElementById('wheel-user-chip');
+            if (!chip) return;
+
+            const displayName = currentUser ? `@${currentUser}` : 'Telegram istifadəçisi';
+            const labelText = (translations[currentLang] && translations[currentLang].wheelParticipantLabel) || 'İştirakçı';
+            chip.innerHTML = `
+                <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:.12em;">${labelText}</span>
+                <strong style="font-size:13px; color:#f8fafc;">${displayName}</strong>
+            `;
+        }
+
+        function joinWheel() {
+            const joinWarningTitle = currentLang === 'en' ? 'Attention' : (currentLang === 'tr' ? 'Dikkat' : (currentLang === 'ru' ? 'Внимание' : 'Diqqət'));
+            const joinWarningText = currentLang === 'en' ? 'Create an account first to join the wheel.' : (currentLang === 'tr' ? 'Çarka katılmak için önce hesap oluşturun.' : (currentLang === 'ru' ? 'Сначала создайте аккаунт, чтобы присоединиться к колесу.' : 'Çarxa qatılmaq üçün əvvəlcə hesab yaradın.'));
+            const joinInsufficientTitle = currentLang === 'en' ? 'Insufficient Balance' : (currentLang === 'tr' ? 'Yetersiz Bakiye' : (currentLang === 'ru' ? 'Недостаточный баланс' : 'Balans Yetmir'));
+            const joinInsufficientText = currentLang === 'en' ? 'You need at least 20 COIN to join the wheel.' : (currentLang === 'tr' ? 'Çarka katılmak için en az 20 COIN gerekir.' : (currentLang === 'ru' ? 'Для участия в колесе требуется минимум 20 COIN.' : 'Çarxa qatılmaq üçün minimum 20 COIN lazımdır.'));
+            const joinSuccessText = currentLang === 'en' ? 'You joined the wheel. 20 COIN was deducted.' : (currentLang === 'tr' ? 'Çarka katıldınız. 20 COIN çıkarıldı.' : (currentLang === 'ru' ? 'Вы присоединились к колесу. Снято 20 COIN.' : 'Çarxa qatıldınız. 20 COIN çıxıldı.'));
+
+            if (!currentUser) {
+                showPopup(joinWarningTitle, joinWarningText, false);
+                return;
+            }
+
+            if (balance < 20) {
+                showPopup(joinInsufficientTitle, joinInsufficientText, false);
+                return;
+            }
+
+            balance -= 20;
+            localStorage.setItem('botBalance', balance);
+            document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+
+            const participantName = currentUser ? `@${currentUser}` : 'Telegram istifadəçisi';
+            wheelParticipants.push({ name: participantName });
+            localStorage.setItem('wheelParticipants', JSON.stringify(wheelParticipants));
+            renderWheelParticipants();
+            showPopup("Uğurlu!", joinSuccessText);
+        }
+
+        // MODAL VƏ POPUP İDARƏSİ
+        function openProfileMenu() { document.getElementById('profile-menu-modal').classList.add('show'); }
+        function openFrameShop() { closeModals(); document.getElementById('frame-shop-modal').classList.add('show'); }
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
+            const warningPopup = document.getElementById('reg-warning-popup');
+            if (warningPopup) warningPopup.classList.remove('show');
+            const sharePopup = document.getElementById('share-popup');
+            if (sharePopup) sharePopup.classList.remove('show');
+        }
+
+        // ŞƏKİLƏ PREVIEW VƏ YADDAŞA YAZILMASI (Base64)
+        function changePicture() {
+            const fileInput = document.getElementById('file-input');
+            if (fileInput) fileInput.click();
+            closeModals();
+        }
+        function previewImage(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(){
+                userAvatar = reader.result;
+                localStorage.setItem('userAvatar', userAvatar);
+                applySavedAvatarAndFrame();
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function deletePicture() {
+            userAvatar = '';
+            localStorage.removeItem('userAvatar');
+            applySavedAvatarAndFrame();
+            closeModals();
+        }
+
+        function applySavedAvatarAndFrame() {
+            const img = document.getElementById('avatar-img');
+            const icon = document.getElementById('default-icon');
+            const avatarDiv = document.getElementById('user-avatar');
+
+            if (userAvatar) {
+                img.src = userAvatar;
+                img.style.display = 'block';
+                icon.style.display = 'none';
+            } else {
+                img.src = '';
+                img.style.display = 'none';
+                icon.style.display = 'block';
+            }
+
+            avatarDiv.className = "profile-avatar " + userFrame;
+        }
+
+        // MAĞAZADAN ÇƏRÇİVƏ SATIN ALMAQ (Yaddaşlı)
+        function buyFrame(frameClass, cost) {
+            if (ownedFrames.includes(frameClass)) {
+                // Əgər artıq sahibdirsə, birbaşa tətbiq et
+                userFrame = frameClass;
+                localStorage.setItem('userFrame', userFrame);
+                applySavedAvatarAndFrame();
+                showPopup("Uğurlu!", "Çərçivə tətbiq olundu.");
+                closeModals();
+                return;
+            }
+
+            if (balance >= cost) {
+                balance -= cost;
+                ownedFrames.push(frameClass);
+                userFrame = frameClass;
+
+                localStorage.setItem('botBalance', balance);
+                localStorage.setItem('ownedFrames', JSON.stringify(ownedFrames));
+                localStorage.setItem('userFrame', userFrame);
+
+                document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+                applySavedAvatarAndFrame();
+                updateShopButtons();
+
+                showPopup("Təbriklər!", "Yeni çərçivə alındı və tətbiq edildi.");
+                closeModals();
+            } else {
+                showPopup("Xəta!", "Kifayət qədər balansınız yoxdur.", false);
+            }
+        }
+
+        function updateShopButtons() {
+            const btnBlue = document.getElementById('buy-btn-blue');
+            const btnRed = document.getElementById('buy-btn-red');
+            const btnGold = document.getElementById('buy-btn-gold');
+            const btnDiamond = document.getElementById('buy-btn-diamond');
+
+            if (!btnBlue || !btnRed || !btnGold || !btnDiamond) return;
+
+            const txtApply = currentLang === 'az' ? 'Tətbiq Et' : (currentLang === 'tr' ? 'Uygula' : (currentLang === 'en' ? 'Apply' : 'Применить'));
+
+            if (ownedFrames.includes('frame-blue')) { btnBlue.innerText = txtApply; btnBlue.className = "premium-btn btn-outline"; }
+            if (ownedFrames.includes('frame-red')) { btnRed.innerText = txtApply; btnRed.className = "premium-btn btn-outline"; }
+            if (ownedFrames.includes('frame-vip-gold')) { btnGold.innerText = txtApply; btnGold.className = "premium-btn btn-gold"; }
+            if (ownedFrames.includes('frame-vip-diamond')) { btnDiamond.innerText = txtApply; btnDiamond.className = "premium-btn btn-outline"; }
+        }
+
+        // YENİLƏNMİŞ TAM DİNAMİK SIRALAMA FUNKSİYASI
+function loadLeaderboard() {
+    const container = document.getElementById('leaderboard-container');
+    container.innerHTML = "";
+
+    // 1. Botların siyahısı (Siyahıdan bot silmək üçün sadəcə altındakı sətirlərdən birini silirsən)
+    let leaderboardData = [
+        { name: "SkyWalker", score: 2300, frame: "frame-vip-diamond" },
+        { name: "CryptoKing", score: 1100, frame: "frame-vip-gold" },
+        { name: "AdHunter", score: 905, frame: "frame-vip-gold" },
+        { name: "Tofiq_00", score: 855, frame: "frame-red" },
+        { name: "Shadow", score: 851, frame: "frame-blue" },
+        { name: "Neo_Matrix", score: 754, frame: "frame-none" },
+        { name: "CyberStar", score: 608, frame: "frame-blue" },
+        { name: "Ferman", score: 607, frame: "frame-none" },
+        { name: "BakuGamer", score: 563, frame: "frame-none" },
+        { name: "Natiq_Ali", score: 502, frame: "frame-none" }
+    ];
+
+    // 2. Sənin xalın və məlumatların
+    const myScore = Math.round(balance);
+    const myName = currentUser ? `@${currentUser}` : "Sən (Qonaq)";
+    const meObj = { name: myName, score: myScore, frame: userFrame, isRealMe: true };
+
+    // 3. Özümüzü ümumi sıralama siyahısına daxil edirik
+    leaderboardData.push(meObj);
+
+    // 4. Bütün siyahını xala görə böyükdən kiçiyə düzürük
+    leaderboardData.sort((a, b) => b.score - a.score);
+
+    // 5. Sıralamada sənin neçənci yerdə olduğunu tapırıq (index 0-dan başladığı üçün +1 edirik)
+    const myRank = leaderboardData.findIndex(user => user.isRealMe) + 1;
+
+    // 6. İlk 10 yeri kəsib götürürük
+    const top10 = leaderboardData.slice(0, 10);
+    
+    top10.forEach((user, index) => {
+        const rank = index + 1;
+        let rankLabel = rank;
+        let itemClass = "";
+
+        // İlk 3 yer üçün medallar
+        if (rank === 1) { rankLabel = "🥇"; itemClass = "rank-1"; }
+        else if (rank === 2) { rankLabel = "🥈"; itemClass = "rank-2"; }
+        else if (rank === 3) { rankLabel = "🥉"; itemClass = "rank-3"; }
+
+        // Əgər ilk 10-luqdakı bu sətir SƏNSƏNSƏ, onu xüsusi rəngləyirik
+        if (user.isRealMe) {
+            itemClass += " rank-me";
+        }
+
+        // Şəkil varsa şəkli, yoxdursa astronavt ikonunu göstəririk
+        const avatarHtml = user.isRealMe && userAvatar 
+            ? `<img src="${userAvatar}" alt="me">` 
+            : `<i class="fa-solid fa-user-astronaut" style="font-size: 11px; color: #888;"></i>`;
+
+        container.innerHTML += `
+            <div class="lb-item ${itemClass}">
+                <div class="lb-rank">${rankLabel}</div>
+                <div class="lb-user">
+                    <div class="lb-avatar-circle ${user.frame}">
+                        ${avatarHtml}
+                    </div>
+                    <span>${user.name}</span>
+                </div>
+                <div class="lb-score">${user.score}</div>
+            </div>
+        `;
+    });
+
+    // 7. Əgər sən ilk 10-luqda deyilsənsə (məsələn, yerin 11, 15, 30-dursa)
+    // Siyahının altına "..." qoyub sənin dəqiq dinamik yerini ayrıca sətirdə çıxarırıq
+    if (myRank > 10) {
+        container.innerHTML += `<div style="text-align:center; color:#555; margin: 5px 0;"><i class="fa-solid fa-ellipsis-vertical"></i></div>`;
+
+        const myAvatarHtml = userAvatar ? `<img src="${userAvatar}" alt="me">` : `<i class="fa-solid fa-user-astronaut" style="font-size:11px;"></i>`;
+
+        container.innerHTML += `
+            <div class="lb-item rank-me">
+                <div class="lb-rank">${myRank}</div>
+                <div class="lb-user">
+                    <div class="lb-avatar-circle ${userFrame}">
+                        ${myAvatarHtml}
+                    </div>
+                    <span>${myName}</span>
+                </div>
+                <div class="lb-score">${myScore}</div>
+            </div>
+        `;
+    }
+}
+
+        // Qeydiyyat Sistemi
+        function registerUser() {
+            const userInp = document.getElementById('reg-username').value.trim();
+            const passInp = document.getElementById('reg-password').value.trim();
+
+            if (userInp === "" || passInp === "") {
+                showPopup("Xəta", "Ad və Şifrə boş ola bilməz!", false);
+                return;
+            }
+
+            localStorage.setItem('botUser', userInp);
+            currentUser = userInp;
+            
+            showPopup("Uğurlu", "Qeydiyyat tamamlandı! İndi qazana bilərsiniz.");
+            checkLoginState();
+        }
+
+        function updateWelcomeText() {
+            const welcomeEl = document.getElementById('welcome-user-text');
+            if (!welcomeEl) return;
+
+            const baseGreeting = (translations[currentLang] && translations[currentLang].welcomeGuest) || 'Xoş gəldin!';
+            const userGreeting = (translations[currentLang] && translations[currentLang].welcomeUser) || 'Xoş gəldin, {name}!';
+            welcomeEl.innerText = currentUser ? userGreeting.replace('{name}', currentUser) : baseGreeting;
+        }
+
+        function checkLoginState() {
+            if (currentUser) {
+                document.getElementById('register-section').style.display = 'none';
+                document.getElementById('withdraw-section').style.display = 'flex';
+            } else {
+                document.getElementById('register-section').style.display = 'flex';
+                document.getElementById('withdraw-section').style.display = 'none';
+            }
+            updateWelcomeText();
+        }
+
+        function logoutUser() {
+            // Bu hissə real bot kimi davranmaq üçün məlumatları silmir.
+            // Yalnız cari UI vəziyyətini yenidən qurur və mövcud balansı saxlamağa davam edir.
+            currentUser = null;
+            document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+            applySavedAvatarAndFrame();
+            updateLimitLabels();
+            checkLoginState();
+        }
+
+        // --- DOST DƏVƏTİ VƏ REKLAM TƏQİBİ SİSTEMİ ---
+
+const REQUIRED_ADS = 10; // Dostunun baxmalı olduğu reklam sayı
+const REFERRAL_BONUS_AMOUNT = 100; // Şərt tamamlananda verilən bonus
+
+// Hər cihaz üçün unikal ID generasiya edirik (və yadda saxlayırıq)
+const myUserId = localStorage.getItem('my_user_id') || "user_" + Math.floor(1000 + Math.random() * 9000);
+localStorage.setItem('my_user_id', myUserId);
+
+// Səhifə yüklənəndə referal sistemini işə salırıq
+window.addEventListener('DOMContentLoaded', () => {
+    generateReferralLink();
+    checkIncomingReferral(); 
+    displayMyReferrals();    
+});
+
+// 1. Dinamik Linkin Yaradılması (.ref-box daxilinə yazır)
+function generateReferralLink() {
+    const refDiv = document.getElementById('ref-link');
+    if (refDiv) {
+        const currentUrl = window.location.href.split('?')[0];
+        refDiv.innerText = `${currentUrl}?ref=${myUserId}`;
+    }
+}
+
+// 2. Linkin Kopyalanması Funksiyası (HTML-də onclick="copyInviteLink()" etdiyimiz üçün adı belə olmalıdır)
+function copyInviteLink() {
+    const refDiv = document.getElementById('ref-link');
+    if (refDiv) {
+        const textToCopy = refDiv.innerText;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const t = translations[currentLang] || translations.az;
+            alert(t.referralCopied || "Dəvət linkiniz kopyalandı!");
+        }).catch(err => {
+            console.error("Kopyalama xətası: ", err);
+        });
+    }
+}
+
+// 3. Linklə gələn yeni dostun qeydiyyatı
+function checkIncomingReferral() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const referrerId = urlParams.get('ref');
+
+    if (referrerId && referrerId !== myUserId) {
+        if (!localStorage.getItem('invited_by')) {
+            localStorage.setItem('invited_by', referrerId);
+            localStorage.setItem('my_watched_ads_for_referrer', "0");
+
+            let referrals = JSON.parse(localStorage.getItem(`referrals_of_${referrerId}`)) || [];
+            if (!referrals.some(ref => ref.id === myUserId)) {
+                referrals.push({ id: myUserId, adsWatched: 0, rewarded: false });
+                localStorage.setItem(`referrals_of_${referrerId}`, JSON.stringify(referrals));
+            }
+        }
+    }
+}
+
+// 4. Dostların siyahısını progress-bar ilə səhvsiz göstərmək
+function displayMyReferrals() {
+    const listContainer = document.getElementById('referrals-list');
+    if (!listContainer) return;
+
+    let referrals = JSON.parse(localStorage.getItem(`referrals_of_${myUserId}`)) || [];
+
+    const t = translations[currentLang] || translations.az;
+
+    if (referrals.length === 0) {
+        listContainer.innerHTML = `<p style="color: #aaa; font-size: 11px; text-align: center; margin: 0;">${t.noReferrals || 'Hələ ki dəvət olunan dost yoxdur.'}</p>`;
+        return;
+    }
+
+    listContainer.innerHTML = "";
+    referrals.forEach((friend, index) => {
+        let statusText = "";
+        let statusColor = "#e67e22"; // Narıncı
+
+        if (friend.adsWatched >= REQUIRED_ADS) {
+            statusText = t.referralComplete || "🎉 Tamamlandı (+100 Xal)";
+            statusColor = "#2ecc71"; // Yaşıl
+        } else {
+            statusText = (t.referralProgress || "Gedişat: {count} / {required} Reklam").replace('{count}', friend.adsWatched).replace('{required}', REQUIRED_ADS);
+        }
+
+        listContainer.innerHTML += `
+            <div class="ref-progress-container" style="margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px; width: 100%;">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
+                    <span style="color: #aaa;">${(t.referralFriendLabel || 'Dost #{index}').replace('{index}', index + 1)}</span>
+                    <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
+                </div>
+                <div class="progress-bar-bg" style="background: #222; border-radius: 4px; height: 6px; overflow: hidden; width: 100%;">
+                    <div class="progress-bar-fill" style="background: ${statusColor}; width: ${(friend.adsWatched / REQUIRED_ADS) * 100}%; height: 100%; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+        function openShareOptions() {
+            document.getElementById('share-popup').classList.add('show');
+        }
+
+        function shareToApp(platform) {
+            closeModals();
+            const linkText = encodeURIComponent(document.getElementById('ref-link').innerText);
+            const message = encodeURIComponent("Dostum, bu botla reklam izləyib limitsiz qazan! Keçid et: ");
+            
+            if (platform === 'whatsapp') {
+                window.open(`https://api.whatsapp.com/send?text=${message}${linkText}`, '_blank');
+            } else if (platform === 'telegram') {
+                window.open(`https://t.me/share/url?url=${linkText}&text=${message}`, '_blank');
+            }
+        }
+
+        // QLOBAL BİLDİRİŞ POPUP-U
+        function showPopup(title, text, isSuccess = true) {
+            const popup = document.getElementById('global-popup');
+            const icon = document.getElementById('popup-icon');
+            const popupTitle = document.getElementById('popup-title');
+            const popupText = document.getElementById('popup-text');
+            if (!popup || !icon || !popupTitle || !popupText) return;
+            popupTitle.innerText = title;
+            popupText.innerText = text;
+            icon.className = isSuccess ? "fa-solid fa-circle-check" : "fa-solid fa-circle-exclamation";
+            icon.style.color = isSuccess ? "#d4af37" : "#ff4d4d";
+            popup.classList.remove('show');
+            popup.classList.add('show');
+            clearTimeout(showPopup.timeoutId);
+            showPopup.timeoutId = setTimeout(() => popup.classList.remove('show'), 2200);
+        }
+
+        // ÇƏKİM TƏLƏBİ (Telegram-a Real-Time ötürmə daxil olmaqla)
+        function requestWithdraw() {
+            const cardNum = document.getElementById('card-input').value.trim();
+            const amountInput = document.getElementById('withdraw-amount');
+            const requestedAmount = parseFloat(amountInput ? amountInput.value : '');
+            const isValidCard = /^\d{16}$/.test(cardNum) || /^TRC20:/i.test(cardNum) || /^0x[a-fA-F0-9]{20,}$/.test(cardNum);
+
+            if (cardNum === "") {
+                showPopup("Xəta!", "Zəhmət olmasa kart daxil edin.", false);
+                return;
+            }
+            if (!isValidCard) {
+                showPopup("Xəta!", "Kart nömrəsi düzgün yazılmayıb. 16 rəqəmli kart və ya TRC20/0x adresi daxil edin.", false);
+                return;
+            }
+            if (!requestedAmount || isNaN(requestedAmount)) {
+                showPopup("Xəta!", "Çəkmək istədiyiniz məbləği daxil edin.", false);
+                return;
+            }
+            if (requestedAmount < 12500) {
+                showPopup("Limit Çatmadı!", "Minimum pul çıxarma limiti 12,500 COIN-dir.", false);
+                return;
+            }
+            if (requestedAmount > balance) {
+                showPopup("Limit Çatmadı!", "Daxil etdiyiniz məbləğ mövcud balansdan yüksəkdir.", false);
+                return;
+            }
+
+            // Əgər Telegram daxilindəyiksə, məlumatı birbaşa Botun backendinə ötürürük
+            if (tg) {
+                const withdrawData = {
+                    action: "withdraw_request",
+                    username: currentUser,
+                    card: cardNum,
+                    coins: requestedAmount.toFixed(2),
+                    usd: (requestedAmount / 12500).toFixed(2)
+                };
+                
+                // Məlumatı bota "web_app_data" kimi göndərir
+                tg.sendData(JSON.stringify(withdrawData));
+                showPopup("Uğurlu!", "Çəkim tələbiniz bota göndərildi!");
+            } else {
+                // Brauzerdə yoxlama üçün normal xəbərdarlıq
+                showPopup("Sorğu Göndərildi!", `${requestedAmount.toFixed(2)} COIN üçün çıxarış yoxlanılır.`);
+            }
+
+            // Balansı çıxarılan məbləğ qədər azaldır
+            balance -= requestedAmount;
+            localStorage.setItem('botBalance', balance);
+            document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+        }
+    </script>
+</body>
+</html>
