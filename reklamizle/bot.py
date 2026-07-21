@@ -58,7 +58,26 @@ async def send_welcome(message: types.Message):
     )
 
 async def main():
+    await start_web_server()  # <--- DƏQİQ BURA ƏLAVƏ ET
+    await dp.start_polling(bot)
     await dp.start_polling(bot, skip_updates=True)
 
 if __name__ == '__main__':
     asyncio.run(main())
+import os
+from aiohttp import web
+
+# Render-in port xətası verməməsi üçün saxta HTTP server
+async def start_web_server():
+    async def handle(request):
+        return web.Response(text="Bot 7/24 aktivdir!")
+
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    # Render avtomatik PORT dəyişənini verir, tapmasa 10000 istifadə edir
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
