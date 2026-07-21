@@ -58,7 +58,7 @@ async def send_welcome(message: types.Message):
     )
 
 async def main():
-    await start_web_server()  # <--- DƏQİQ BURA ƏLAVƏ ET
+    await start_web_server()
     await dp.start_polling(bot)
     await dp.start_polling(bot, skip_updates=True)
 
