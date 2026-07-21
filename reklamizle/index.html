@@ -1160,6 +1160,8 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             localStorage.setItem('botBalance', balance.toFixed(2));
         }
         let currentUser = localStorage.getItem('botUser') || null;
+        let telegramUserId = null;
+        let isTelegramRegistered = false;
         let userFrame = localStorage.getItem('userFrame') || 'frame-none';
         let userAvatar = localStorage.getItem('userAvatar') || '';
         let ownedFrames = (() => {
@@ -1601,9 +1603,31 @@ function loadLeaderboard() {
 
             localStorage.setItem('botUser', userInp);
             currentUser = userInp;
-            
             showPopup("Uğurlu", "Qeydiyyat tamamlandı! İndi qazana bilərsiniz.");
-            checkLoginState();
+
+            sendRegistrationToBackend(userInp, passInp).finally(() => {
+                checkLoginState();
+                switchPage('account', document.getElementById('nav-account'));
+            });
+        }
+
+        async function sendRegistrationToBackend(username, password) {
+            if (!telegramUserId) return;
+            try {
+                const response = await fetch('https://adcrash-bot.onrender.com/register_user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegram_id: telegramUserId, username, password })
+                });
+
+                const data = await response.json();
+                if (data?.is_registered === true) {
+                    applyTelegramRegistrationState(true);
+                }
+                return data;
+            } catch (error) {
+                console.error('Register backend error:', error);
+            }
         }
 
         function updateWelcomeText() {
@@ -1616,7 +1640,8 @@ function loadLeaderboard() {
         }
 
         function checkLoginState() {
-            if (currentUser) {
+            const isRegistered = currentUser || isTelegramRegistered;
+            if (isRegistered) {
                 document.getElementById('register-section').style.display = 'none';
                 document.getElementById('withdraw-section').style.display = 'flex';
             } else {
@@ -1649,8 +1674,35 @@ localStorage.setItem('my_user_id', myUserId);
 window.addEventListener('DOMContentLoaded', () => {
     generateReferralLink();
     checkIncomingReferral(); 
-    displayMyReferrals();    
+    displayMyReferrals();
+    checkTelegramRegistration();
 });
+
+async function checkTelegramRegistration() {
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    telegramUserId = userId || null;
+    if (!userId) return;
+
+    try {
+        const response = await fetch(`https://adcrash-bot.onrender.com/check_user?telegram_id=${encodeURIComponent(userId)}`);
+        const data = await response.json();
+        const isRegistered = data?.is_registered === true;
+        applyTelegramRegistrationState(isRegistered);
+    } catch (error) {
+        console.error('Telegram user check failed:', error);
+    }
+}
+
+function applyTelegramRegistrationState(isRegistered) {
+    const registerSection = document.getElementById('register-section');
+    const withdrawSection = document.getElementById('withdraw-section');
+    if (!registerSection || !withdrawSection) return;
+
+    isTelegramRegistered = isRegistered;
+    registerSection.style.display = isRegistered ? 'none' : 'flex';
+    withdrawSection.style.display = isRegistered ? 'flex' : 'none';
+    updateWelcomeText();
+}
 
 // 1. Dinamik Linkin Yaradılması (.ref-box daxilinə yazır)
 function generateReferralLink() {
