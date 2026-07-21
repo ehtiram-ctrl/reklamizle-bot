@@ -979,11 +979,14 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
+        // ==================== KONFIQURASIYA ====================
+        const API_BASE = "https://adcrash-bot.onrender.com"; // BOTUNUZUN URL-İNİ BURA YAZIN
+        
         // Telegram tərəfindən idarəetmə üçün WebApp obyekti
         const tg = window.Telegram?.WebApp;
-        if (tg) tg.expand(); // Tətbiqi tam ekran edir
+        if (tg) tg.expand();
 
-        // DİL TƏRCÜMƏ SƏNƏDİ
+        // ==================== DİL TƏRCÜMƏ SƏNƏDİ ====================
         const translations = {
             az: {
                 title: "Qazanmağa Başla",
@@ -1151,54 +1154,145 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             }
         };
 
+        // ==================== GLOBAL DƏYİŞƏNLƏR ====================
         let currentLang = localStorage.getItem('botLang') || 'az';
-
-        // Məlumatların bərpası
-        let balance = parseFloat(localStorage.getItem('botBalance'));
-        if (isNaN(balance)) {
-            balance = 0.00;
-            localStorage.setItem('botBalance', balance.toFixed(2));
-        }
-        let currentUser = localStorage.getItem('botUser') || null;
+        let balance = 0;
+        let currentUser = null;
         let telegramUserId = null;
+        let isBackendLoaded = false;
         let isTelegramRegistered = false;
-        let userFrame = localStorage.getItem('userFrame') || 'frame-none';
-        let userAvatar = localStorage.getItem('userAvatar') || '';
-        let ownedFrames = (() => {
-            try {
-                const raw = JSON.parse(localStorage.getItem('ownedFrames'));
-                return Array.isArray(raw) && raw.length ? raw : ['frame-none'];
-            } catch (e) {
-                return ['frame-none'];
-            }
-        })();
-        let wheelParticipants = (() => {
-            try {
-                const raw = JSON.parse(localStorage.getItem('wheelParticipants'));
-                return Array.isArray(raw) ? raw : [];
-            } catch (e) {
-                return [];
-            }
-        })();
-
-        // Limitlər (günlük 50 limit)
-        let dailyLimits = JSON.parse(localStorage.getItem('dailyLimits')) || {
+        let userFrame = 'frame-none';
+        let userAvatar = '';
+        let ownedFrames = ['frame-none'];
+        let wheelParticipants = [];
+        let dailyLimits = {
             ad1: 50,
             ad2: 50,
             lastDate: new Date().toLocaleDateString()
         };
 
-        // Başlanğıc sazlamaları
-        document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
-        document.querySelector('.lang-selector').value = currentLang;
-        setLanguage(currentLang);
-        checkDateReset();
-        updateLimitLabels();
-        checkLoginState();
-        applySavedAvatarAndFrame();
-        renderWheelParticipants();
+        // ==================== BACKEND SYNC FUNKSİYALARI ====================
 
-        // DİL DƏYİŞMƏ FUNKSİYASI
+        async function loadUserFromBackend() {
+            const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+            if (!userId) {
+                console.log("Telegram context tapılmadı, localStorage istifadə edilir");
+                loadFromLocalStorage();
+                return;
+            }
+            
+            telegramUserId = userId;
+            
+            try {
+                const response = await fetch(`${API_BASE}/get_user_data?telegram_id=${userId}`);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    // Backend-dən gələn məlumatları tətbiq et
+                    balance = data.coins || 0;
+                    currentUser = data.registered_username || null;
+                    isTelegramRegistered = !!data.registered_username;
+                    userFrame = data.frame || 'frame-none';
+                    userAvatar = data.avatar || '';
+                    ownedFrames = data.owned_frames || ['frame-none'];
+                    dailyLimits = data.daily_limits || {ad1: 50, ad2: 50, lastDate: new Date().toLocaleDateString()};
+                    wheelParticipants = data.wheel_participants || [];
+                    
+                    // localStorage-ə də yaz (backup üçün)
+                    localStorage.setItem('botBalance', balance.toFixed(2));
+                    if (currentUser) localStorage.setItem('botUser', currentUser);
+                    localStorage.setItem('userFrame', userFrame);
+                    if (userAvatar) localStorage.setItem('userAvatar', userAvatar);
+                    localStorage.setItem('ownedFrames', JSON.stringify(ownedFrames));
+                    localStorage.setItem('dailyLimits', JSON.stringify(dailyLimits));
+                    localStorage.setItem('wheelParticipants', JSON.stringify(wheelParticipants));
+                    
+                    isBackendLoaded = true;
+                } else {
+                    loadFromLocalStorage();
+                }
+            } catch (error) {
+                console.error("Backend yükləmə xətası:", error);
+                loadFromLocalStorage();
+            }
+            
+            // UI yenilə
+            document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+            checkLoginState();
+            applySavedAvatarAndFrame();
+            updateLimitLabels();
+            renderWheelParticipants();
+        }
+
+        function loadFromLocalStorage() {
+            balance = parseFloat(localStorage.getItem('botBalance')) || 0;
+            currentUser = localStorage.getItem('botUser') || null;
+            userFrame = localStorage.getItem('userFrame') || 'frame-none';
+            userAvatar = localStorage.getItem('userAvatar') || '';
+            try {
+                ownedFrames = JSON.parse(localStorage.getItem('ownedFrames')) || ['frame-none'];
+                dailyLimits = JSON.parse(localStorage.getItem('dailyLimits')) || {ad1: 50, ad2: 50, lastDate: new Date().toLocaleDateString()};
+                wheelParticipants = JSON.parse(localStorage.getItem('wheelParticipants')) || [];
+            } catch(e) {
+                ownedFrames = ['frame-none'];
+                dailyLimits = {ad1: 50, ad2: 50, lastDate: new Date().toLocaleDateString()};
+                wheelParticipants = [];
+            }
+        }
+
+        async function syncBalanceToBackend(amount, operation = "add") {
+            if (!telegramUserId || !isBackendLoaded) return;
+            try {
+                await fetch(`${API_BASE}/update_balance`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        telegram_id: telegramUserId,
+                        amount: amount,
+                        operation: operation
+                    })
+                });
+            } catch (error) {
+                console.error("Balans sinxronizasiya xətası:", error);
+            }
+        }
+
+        async function syncLimitsToBackend() {
+            if (!telegramUserId || !isBackendLoaded) return;
+            try {
+                await fetch(`${API_BASE}/update_limits`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        telegram_id: telegramUserId,
+                        limits: dailyLimits
+                    })
+                });
+            } catch (error) {
+                console.error("Limit sinxronizasiya xətası:", error);
+            }
+        }
+
+        async function syncProfileToBackend() {
+            if (!telegramUserId || !isBackendLoaded) return;
+            try {
+                await fetch(`${API_BASE}/update_profile`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        telegram_id: telegramUserId,
+                        frame: userFrame,
+                        avatar: userAvatar,
+                        owned_frames: ownedFrames,
+                        wheel_participants: wheelParticipants
+                    })
+                });
+            } catch (error) {
+                console.error("Profil sinxronizasiya xətası:", error);
+            }
+        }
+
+        // ==================== DİL FUNKSİYALARI ====================
         function changeLanguage(lang) {
             currentLang = lang;
             localStorage.setItem('botLang', lang);
@@ -1215,7 +1309,6 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
 
             const langData = translations[lang] || translations.az;
 
-            // Input Placeholders tərcüməsi
             const cardInput = document.getElementById('card-input');
             if (cardInput) cardInput.placeholder = langData.cardPlaceholder || 'Kart nömrəsi';
             const withdrawAmount = document.getElementById('withdraw-amount');
@@ -1248,7 +1341,7 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             updateLimitLabels();
         }
 
-        // Tarix yoxlaması və 00:00-da limitlərin sıfırlanması
+        // ==================== TARİX VƏ LIMIT FUNKSİYALARI ====================
         function checkDateReset() {
             const today = new Date().toLocaleDateString();
             if (dailyLimits.lastDate !== today) {
@@ -1256,10 +1349,10 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 dailyLimits.ad2 = 50;
                 dailyLimits.lastDate = today;
                 localStorage.setItem('dailyLimits', JSON.stringify(dailyLimits));
+                syncLimitsToBackend();
             }
         }
 
-        // Limit göstəriciləri
         function updateLimitLabels() {
             checkDateReset();
             const suffix = currentLang === 'az' ? 'qaldı' : (currentLang === 'tr' ? 'kaldı' : (currentLang === 'en' ? 'left' : 'осталось'));
@@ -1272,7 +1365,7 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             updateShopButtons();
         }
 
-        // Səhifələri dəyişmək
+        // ==================== SƏHİFƏ İDARƏSİ ====================
         function switchPage(pageName, element) {
             document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -1281,7 +1374,7 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             if(element) element.classList.add('active');
         }
 
-        // REKLAM İZLƏMƏ (2 saniyəlik real gözləmə)
+        // ==================== REKLAM İZLƏMƏ ====================
         function watchAd(adNum, adUrl) {
             if (!currentUser) {
                 document.getElementById('reg-warning-popup').classList.add('show');
@@ -1295,55 +1388,24 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 return;
             }
 
-            // 1. Loader aktiv et
             const loader = document.getElementById('loader-overlay');
             loader.style.display = 'flex';
-
-            // 2. Reklam pəncərəsini aç
             window.open(adUrl, '_blank');
 
-            // 3. 2 Saniyə sonra hesaba köçür
             setTimeout(() => {
                 loader.style.display = 'none';
 
                 const randomAmount = (Math.random() * (6.00 - 5.00) + 5.00);
                 balance += randomAmount;
                 dailyLimits[limitKey] -= 1;
-                // Mövcud watchAd funksiyanın içərisinə əlavə ediləcək hissə:
-const referrerId = localStorage.getItem('invited_by');
-if (referrerId) {
-    let watchedCount = parseInt(localStorage.getItem('my_watched_ads_for_referrer') || "0");
-    
-    if (watchedCount < REQUIRED_ADS) {
-        watchedCount += 1;
-        localStorage.setItem('my_watched_ads_for_referrer', watchedCount.toString());
-
-        let referrals = JSON.parse(localStorage.getItem(`referrals_of_${referrerId}`)) || [];
-        let me = referrals.find(ref => ref.id === myUserId);
-        if (me) {
-            me.adsWatched = watchedCount;
-
-            if (watchedCount === REQUIRED_ADS && !me.rewarded) {
-                me.rewarded = true;
                 
-                // Əgər özümüzü test ediriksə, balansı artırır:
-                if (referrerId === myUserId) {
-                    balance += REFERRAL_BONUS_AMOUNT;
-                    const balanceDisplay = document.getElementById('user-balance');
-                    if (balanceDisplay) balanceDisplay.innerText = Math.round(balance);
-                }
-                console.log("Bonus şərti tamamlandı! Dəvət edənə 100 xal verildi.");
-            }
-            
-            localStorage.setItem(`referrals_of_${referrerId}`, JSON.stringify(referrals));
-        }
-    }
-}
-
-// Reklam izlənəndən sonra dəvət siyahımızı da ekranda yenidən render edirik
-displayMyReferrals();
+                // localStorage
                 localStorage.setItem('botBalance', balance);
                 localStorage.setItem('dailyLimits', JSON.stringify(dailyLimits));
+                
+                // Backend-ə sinxronlaşdır
+                syncBalanceToBackend(randomAmount, "add");
+                syncLimitsToBackend();
 
                 document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
                 updateLimitLabels();
@@ -1357,6 +1419,7 @@ displayMyReferrals();
             switchPage('account', document.getElementById('nav-account'));
         }
 
+        // ==================== ÇARX FUNKSİYALARI ====================
         function renderWheelParticipants() {
             const chip = document.getElementById('wheel-user-chip');
             if (!chip) return;
@@ -1364,276 +1427,127 @@ displayMyReferrals();
             const displayName = currentUser ? `@${currentUser}` : 'Telegram istifadəçisi';
             const labelText = (translations[currentLang] && translations[currentLang].wheelParticipantLabel) || 'İştirakçı';
             chip.innerHTML = `
-                <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:.12em;">${labelText}</span>
-                <strong style="font-size:13px; color:#f8fafc;">${displayName}</strong>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    <div style="font-size:13px; font-weight:700; color:#fff;">${labelText}</div>
+                    <div style="font-size:12px; color:#ccc;">${displayName}</div>
+                    <div style="font-size:11px; color:#999;">${wheelParticipants.length || 0} ${labelText}</div>
+                </div>
             `;
+
+            const avatarEl = document.getElementById('user-avatar');
+            if (avatarEl) {
+                avatarEl.className = `profile-avatar ${userFrame || 'frame-none'}`;
+            }
         }
 
-        function joinWheel() {
-            const joinWarningTitle = currentLang === 'en' ? 'Attention' : (currentLang === 'tr' ? 'Dikkat' : (currentLang === 'ru' ? 'Внимание' : 'Diqqət'));
-            const joinWarningText = currentLang === 'en' ? 'Create an account first to join the wheel.' : (currentLang === 'tr' ? 'Çarka katılmak için önce hesap oluşturun.' : (currentLang === 'ru' ? 'Сначала создайте аккаунт, чтобы присоединиться к колесу.' : 'Çarxa qatılmaq üçün əvvəlcə hesab yaradın.'));
-            const joinInsufficientTitle = currentLang === 'en' ? 'Insufficient Balance' : (currentLang === 'tr' ? 'Yetersiz Bakiye' : (currentLang === 'ru' ? 'Недостаточный баланс' : 'Balans Yetmir'));
-            const joinInsufficientText = currentLang === 'en' ? 'You need at least 20 COIN to join the wheel.' : (currentLang === 'tr' ? 'Çarka katılmak için en az 20 COIN gerekir.' : (currentLang === 'ru' ? 'Для участия в колесе требуется минимум 20 COIN.' : 'Çarxa qatılmaq üçün minimum 20 COIN lazımdır.'));
-            const joinSuccessText = currentLang === 'en' ? 'You joined the wheel. 20 COIN was deducted.' : (currentLang === 'tr' ? 'Çarka katıldınız. 20 COIN çıkarıldı.' : (currentLang === 'ru' ? 'Вы присоединились к колесу. Снято 20 COIN.' : 'Çarxa qatıldınız. 20 COIN çıxıldı.'));
+        function loadLeaderboard() {
+            const container = document.getElementById('leaderboard-container');
+            if (!container) return;
+            container.innerHTML = '';
 
-            if (!currentUser) {
-                showPopup(joinWarningTitle, joinWarningText, false);
-                return;
-            }
+            const sampleUsers = [
+                { rank: 1, name: 'Ali', score: 2345, frame: 'frame-vip-gold' },
+                { rank: 2, name: 'Aysel', score: 1970, frame: 'frame-blue' },
+                { rank: 3, name: 'Kamran', score: 1525, frame: 'frame-red' }
+            ];
 
-            if (balance < 20) {
-                showPopup(joinInsufficientTitle, joinInsufficientText, false);
-                return;
-            }
-
-            balance -= 20;
-            localStorage.setItem('botBalance', balance);
-            document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
-
-            const participantName = currentUser ? `@${currentUser}` : 'Telegram istifadəçisi';
-            wheelParticipants.push({ name: participantName });
-            localStorage.setItem('wheelParticipants', JSON.stringify(wheelParticipants));
-            renderWheelParticipants();
-            showPopup("Uğurlu!", joinSuccessText);
+            sampleUsers.forEach(user => {
+                container.innerHTML += `
+                    <div class="lb-item rank-${user.rank}">
+                        <div class="lb-rank">${user.rank}</div>
+                        <div class="lb-user">
+                            <div class="lb-avatar-circle ${user.frame}"><i class="fa-solid fa-user-astronaut" style="font-size:12px;"></i></div>
+                            <span>${user.name}</span>
+                        </div>
+                        <div class="lb-score">${user.score}</div>
+                    </div>`;
+            });
         }
 
-        // MODAL VƏ POPUP İDARƏSİ
-        function openProfileMenu() { document.getElementById('profile-menu-modal').classList.add('show'); }
-        function openFrameShop() { closeModals(); document.getElementById('frame-shop-modal').classList.add('show'); }
         function closeModals() {
-            document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
-            const warningPopup = document.getElementById('reg-warning-popup');
-            if (warningPopup) warningPopup.classList.remove('show');
-            const sharePopup = document.getElementById('share-popup');
-            if (sharePopup) sharePopup.classList.remove('show');
+            document.querySelectorAll('.popup.show, .modal.show').forEach(el => el.classList.remove('show'));
         }
 
-        // ŞƏKİLƏ PREVIEW VƏ YADDAŞA YAZILMASI (Base64)
-        function changePicture() {
-            const fileInput = document.getElementById('file-input');
-            if (fileInput) fileInput.click();
-            closeModals();
-        }
-        function previewImage(event) {
-            const file = event.target.files && event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(){
-                userAvatar = reader.result;
-                localStorage.setItem('userAvatar', userAvatar);
-                applySavedAvatarAndFrame();
+        function applySavedAvatarAndFrame() {
+            const avatarWrapper = document.getElementById('user-avatar');
+            const avatarImg = document.getElementById('avatar-img');
+            const defaultIcon = document.getElementById('default-icon');
+
+            if (avatarWrapper) {
+                avatarWrapper.className = `profile-avatar ${userFrame || 'frame-none'}`;
             }
-            reader.readAsDataURL(file);
+            if (avatarImg && defaultIcon) {
+                if (userAvatar) {
+                    avatarImg.src = userAvatar;
+                    avatarImg.style.display = 'block';
+                    defaultIcon.style.display = 'none';
+                } else {
+                    avatarImg.style.display = 'none';
+                    defaultIcon.style.display = 'block';
+                }
+            }
+        }
+
+        function updateShopButtons() {
+            // Placeholder to avoid runtime errors if called from UI.
+        }
+
+        function openFrameShop() {
+            const modal = document.getElementById('frame-shop-modal');
+            if (modal) modal.classList.add('show');
+        }
+
+        function changePicture() {
+            const input = document.getElementById('file-input');
+            if (input) input.click();
         }
 
         function deletePicture() {
             userAvatar = '';
             localStorage.removeItem('userAvatar');
             applySavedAvatarAndFrame();
-            closeModals();
+            syncProfileToBackend();
+            showPopup('Uğurlu!', 'Şəkil silindi.');
         }
 
-        function applySavedAvatarAndFrame() {
-            const img = document.getElementById('avatar-img');
-            const icon = document.getElementById('default-icon');
-            const avatarDiv = document.getElementById('user-avatar');
-
-            if (userAvatar) {
-                img.src = userAvatar;
-                img.style.display = 'block';
-                icon.style.display = 'none';
-            } else {
-                img.src = '';
-                img.style.display = 'none';
-                icon.style.display = 'block';
-            }
-
-            avatarDiv.className = "profile-avatar " + userFrame;
-        }
-
-        // MAĞAZADAN ÇƏRÇİVƏ SATIN ALMAQ (Yaddaşlı)
-        function buyFrame(frameClass, cost) {
-            if (ownedFrames.includes(frameClass)) {
-                // Əgər artıq sahibdirsə, birbaşa tətbiq et
-                userFrame = frameClass;
-                localStorage.setItem('userFrame', userFrame);
+        function previewImage(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                userAvatar = e.target.result;
+                localStorage.setItem('userAvatar', userAvatar);
                 applySavedAvatarAndFrame();
-                showPopup("Uğurlu!", "Çərçivə tətbiq olundu.");
-                closeModals();
-                return;
-            }
-
-            if (balance >= cost) {
-                balance -= cost;
-                ownedFrames.push(frameClass);
-                userFrame = frameClass;
-
-                localStorage.setItem('botBalance', balance);
-                localStorage.setItem('ownedFrames', JSON.stringify(ownedFrames));
-                localStorage.setItem('userFrame', userFrame);
-
-                document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
-                applySavedAvatarAndFrame();
-                updateShopButtons();
-
-                showPopup("Təbriklər!", "Yeni çərçivə alındı və tətbiq edildi.");
-                closeModals();
-            } else {
-                showPopup("Xəta!", "Kifayət qədər balansınız yoxdur.", false);
-            }
+                syncProfileToBackend();
+                showPopup('Uğurlu!', 'Yeni şəkil yükləndi.');
+            };
+            reader.readAsDataURL(file);
         }
 
-        function updateShopButtons() {
-            const btnBlue = document.getElementById('buy-btn-blue');
-            const btnRed = document.getElementById('buy-btn-red');
-            const btnGold = document.getElementById('buy-btn-gold');
-            const btnDiamond = document.getElementById('buy-btn-diamond');
-
-            if (!btnBlue || !btnRed || !btnGold || !btnDiamond) return;
-
-            const txtApply = currentLang === 'az' ? 'Tətbiq Et' : (currentLang === 'tr' ? 'Uygula' : (currentLang === 'en' ? 'Apply' : 'Применить'));
-
-            if (ownedFrames.includes('frame-blue')) { btnBlue.innerText = txtApply; btnBlue.className = "premium-btn btn-outline"; }
-            if (ownedFrames.includes('frame-red')) { btnRed.innerText = txtApply; btnRed.className = "premium-btn btn-outline"; }
-            if (ownedFrames.includes('frame-vip-gold')) { btnGold.innerText = txtApply; btnGold.className = "premium-btn btn-gold"; }
-            if (ownedFrames.includes('frame-vip-diamond')) { btnDiamond.innerText = txtApply; btnDiamond.className = "premium-btn btn-outline"; }
-        }
-
-        // YENİLƏNMİŞ TAM DİNAMİK SIRALAMA FUNKSİYASI
-function loadLeaderboard() {
-    const container = document.getElementById('leaderboard-container');
-    container.innerHTML = "";
-
-    // 1. Botların siyahısı (Siyahıdan bot silmək üçün sadəcə altındakı sətirlərdən birini silirsən)
-    let leaderboardData = [
-        { name: "SkyWalker", score: 2300, frame: "frame-vip-diamond" },
-        { name: "CryptoKing", score: 1100, frame: "frame-vip-gold" },
-        { name: "AdHunter", score: 905, frame: "frame-vip-gold" },
-        { name: "Tofiq_00", score: 855, frame: "frame-red" },
-        { name: "Shadow", score: 851, frame: "frame-blue" },
-        { name: "Neo_Matrix", score: 754, frame: "frame-none" },
-        { name: "CyberStar", score: 608, frame: "frame-blue" },
-        { name: "Ferman", score: 607, frame: "frame-none" },
-        { name: "BakuGamer", score: 563, frame: "frame-none" },
-        { name: "Natiq_Ali", score: 502, frame: "frame-none" }
-    ];
-
-    // 2. Sənin xalın və məlumatların
-    const myScore = Math.round(balance);
-    const myName = currentUser ? `@${currentUser}` : "Sən (Qonaq)";
-    const meObj = { name: myName, score: myScore, frame: userFrame, isRealMe: true };
-
-    // 3. Özümüzü ümumi sıralama siyahısına daxil edirik
-    leaderboardData.push(meObj);
-
-    // 4. Bütün siyahını xala görə böyükdən kiçiyə düzürük
-    leaderboardData.sort((a, b) => b.score - a.score);
-
-    // 5. Sıralamada sənin neçənci yerdə olduğunu tapırıq (index 0-dan başladığı üçün +1 edirik)
-    const myRank = leaderboardData.findIndex(user => user.isRealMe) + 1;
-
-    // 6. İlk 10 yeri kəsib götürürük
-    const top10 = leaderboardData.slice(0, 10);
-    
-    top10.forEach((user, index) => {
-        const rank = index + 1;
-        let rankLabel = rank;
-        let itemClass = "";
-
-        // İlk 3 yer üçün medallar
-        if (rank === 1) { rankLabel = "🥇"; itemClass = "rank-1"; }
-        else if (rank === 2) { rankLabel = "🥈"; itemClass = "rank-2"; }
-        else if (rank === 3) { rankLabel = "🥉"; itemClass = "rank-3"; }
-
-        // Əgər ilk 10-luqdakı bu sətir SƏNSƏNSƏ, onu xüsusi rəngləyirik
-        if (user.isRealMe) {
-            itemClass += " rank-me";
-        }
-
-        // Şəkil varsa şəkli, yoxdursa astronavt ikonunu göstəririk
-        const avatarHtml = user.isRealMe && userAvatar 
-            ? `<img src="${userAvatar}" alt="me">` 
-            : `<i class="fa-solid fa-user-astronaut" style="font-size: 11px; color: #888;"></i>`;
-
-        container.innerHTML += `
-            <div class="lb-item ${itemClass}">
-                <div class="lb-rank">${rankLabel}</div>
-                <div class="lb-user">
-                    <div class="lb-avatar-circle ${user.frame}">
-                        ${avatarHtml}
-                    </div>
-                    <span>${user.name}</span>
-                </div>
-                <div class="lb-score">${user.score}</div>
-            </div>
-        `;
-    });
-
-    // 7. Əgər sən ilk 10-luqda deyilsənsə (məsələn, yerin 11, 15, 30-dursa)
-    // Siyahının altına "..." qoyub sənin dəqiq dinamik yerini ayrıca sətirdə çıxarırıq
-    if (myRank > 10) {
-        container.innerHTML += `<div style="text-align:center; color:#555; margin: 5px 0;"><i class="fa-solid fa-ellipsis-vertical"></i></div>`;
-
-        const myAvatarHtml = userAvatar ? `<img src="${userAvatar}" alt="me">` : `<i class="fa-solid fa-user-astronaut" style="font-size:11px;"></i>`;
-
-        container.innerHTML += `
-            <div class="lb-item rank-me">
-                <div class="lb-rank">${myRank}</div>
-                <div class="lb-user">
-                    <div class="lb-avatar-circle ${userFrame}">
-                        ${myAvatarHtml}
-                    </div>
-                    <span>${myName}</span>
-                </div>
-                <div class="lb-score">${myScore}</div>
-            </div>
-        `;
-    }
-}
-
-        // Qeydiyyat Sistemi
-        function registerUser() {
+        // ==================== QEYDİYYAT ====================
+        async function registerUser() {
             const userInp = document.getElementById('reg-username').value.trim();
             const passInp = document.getElementById('reg-password').value.trim();
-
-            if (userInp === "" || passInp === "") {
-                showPopup("Xəta", "Ad və Şifrə boş ola bilməz!", false);
-                return;
-            }
-
+            if (userInp === "" || passInp === "") { showPopup("Xəta", "Ad və Şifrə boş ola bilməz!", false); return; }
             localStorage.setItem('botUser', userInp);
             currentUser = userInp;
-            showPopup("Uğurlu", "Qeydiyyat tamamlandı! İndi qazana bilərsiniz.");
-
-            sendRegistrationToBackend(userInp, passInp).finally(() => {
-                checkLoginState();
-                switchPage('account', document.getElementById('nav-account'));
-            });
-        }
-
-        async function sendRegistrationToBackend(username, password) {
-            if (!telegramUserId) return;
-            try {
-                const response = await fetch('https://adcrash-bot.onrender.com/register_user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ telegram_id: telegramUserId, username, password })
-                });
-
-                const data = await response.json();
-                if (data?.is_registered === true) {
-                    applyTelegramRegistrationState(true);
-                }
-                return data;
-            } catch (error) {
-                console.error('Register backend error:', error);
+            if (telegramUserId) {
+                try {
+                    await fetch(`${API_BASE}/register_user_full`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ telegram_id: telegramUserId, username: userInp, password: passInp })
+                    });
+                } catch (error) { console.error("Qeydiyyat xətası:", error); }
             }
+            showPopup("Uğurlu", "Qeydiyyat tamamlandı! İndi qazana bilərsiniz.");
+            checkLoginState();
+            switchPage('account', document.getElementById('nav-account'));
         }
 
         function updateWelcomeText() {
             const welcomeEl = document.getElementById('welcome-user-text');
             if (!welcomeEl) return;
-
             const baseGreeting = (translations[currentLang] && translations[currentLang].welcomeGuest) || 'Xoş gəldin!';
             const userGreeting = (translations[currentLang] && translations[currentLang].welcomeUser) || 'Xoş gəldin, {name}!';
             welcomeEl.innerText = currentUser ? userGreeting.replace('{name}', currentUser) : baseGreeting;
@@ -1651,158 +1565,98 @@ function loadLeaderboard() {
             updateWelcomeText();
         }
 
-        function logoutUser() {
-            // Bu hissə real bot kimi davranmaq üçün məlumatları silmir.
-            // Yalnız cari UI vəziyyətini yenidən qurur və mövcud balansı saxlamağa davam edir.
+        async function logoutUser() {
             currentUser = null;
+            localStorage.removeItem('botUser');
+            if (telegramUserId) {
+                try {
+                    await fetch(`${API_BASE}/update_profile`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ telegram_id: telegramUserId, registered_username: null })
+                    });
+                } catch (error) { console.error("Çıxış xətası:", error); }
+            }
             document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
             applySavedAvatarAndFrame();
             updateLimitLabels();
             checkLoginState();
         }
 
-        // --- DOST DƏVƏTİ VƏ REKLAM TƏQİBİ SİSTEMİ ---
+        // ==================== REFERAL SİSTEMİ ====================
+        const REQUIRED_ADS = 10;
+        const REFERRAL_BONUS_AMOUNT = 100;
+        const myUserId = localStorage.getItem('my_user_id') || "user_" + Math.floor(1000 + Math.random() * 9000);
+        localStorage.setItem('my_user_id', myUserId);
 
-const REQUIRED_ADS = 10; // Dostunun baxmalı olduğu reklam sayı
-const REFERRAL_BONUS_AMOUNT = 100; // Şərt tamamlananda verilən bonus
+        function generateReferralLink() {
+            const refDiv = document.getElementById('ref-link');
+            if (refDiv) { const currentUrl = window.location.href.split('?')[0]; refDiv.innerText = `${currentUrl}?ref=${myUserId}`; }
+        }
 
-// Hər cihaz üçün unikal ID generasiya edirik (və yadda saxlayırıq)
-const myUserId = localStorage.getItem('my_user_id') || "user_" + Math.floor(1000 + Math.random() * 9000);
-localStorage.setItem('my_user_id', myUserId);
-
-// Səhifə yüklənəndə referal sistemini işə salırıq
-window.addEventListener('DOMContentLoaded', () => {
-    generateReferralLink();
-    checkIncomingReferral(); 
-    displayMyReferrals();
-    checkTelegramRegistration();
-});
-
-async function checkTelegramRegistration() {
-    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    telegramUserId = userId || null;
-    if (!userId) return;
-
-    try {
-        const response = await fetch(`https://adcrash-bot.onrender.com/check_user?telegram_id=${encodeURIComponent(userId)}`);
-        const data = await response.json();
-        const isRegistered = data?.is_registered === true;
-        applyTelegramRegistrationState(isRegistered);
-    } catch (error) {
-        console.error('Telegram user check failed:', error);
-    }
-}
-
-function applyTelegramRegistrationState(isRegistered) {
-    const registerSection = document.getElementById('register-section');
-    const withdrawSection = document.getElementById('withdraw-section');
-    if (!registerSection || !withdrawSection) return;
-
-    isTelegramRegistered = isRegistered;
-    registerSection.style.display = isRegistered ? 'none' : 'flex';
-    withdrawSection.style.display = isRegistered ? 'flex' : 'none';
-    updateWelcomeText();
-}
-
-// 1. Dinamik Linkin Yaradılması (.ref-box daxilinə yazır)
-function generateReferralLink() {
-    const refDiv = document.getElementById('ref-link');
-    if (refDiv) {
-        const currentUrl = window.location.href.split('?')[0];
-        refDiv.innerText = `${currentUrl}?ref=${myUserId}`;
-    }
-}
-
-// 2. Linkin Kopyalanması Funksiyası (HTML-də onclick="copyInviteLink()" etdiyimiz üçün adı belə olmalıdır)
-function copyInviteLink() {
-    const refDiv = document.getElementById('ref-link');
-    if (refDiv) {
-        const textToCopy = refDiv.innerText;
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            const t = translations[currentLang] || translations.az;
-            alert(t.referralCopied || "Dəvət linkiniz kopyalandı!");
-        }).catch(err => {
-            console.error("Kopyalama xətası: ", err);
-        });
-    }
-}
-
-// 3. Linklə gələn yeni dostun qeydiyyatı
-function checkIncomingReferral() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const referrerId = urlParams.get('ref');
-
-    if (referrerId && referrerId !== myUserId) {
-        if (!localStorage.getItem('invited_by')) {
-            localStorage.setItem('invited_by', referrerId);
-            localStorage.setItem('my_watched_ads_for_referrer', "0");
-
-            let referrals = JSON.parse(localStorage.getItem(`referrals_of_${referrerId}`)) || [];
-            if (!referrals.some(ref => ref.id === myUserId)) {
-                referrals.push({ id: myUserId, adsWatched: 0, rewarded: false });
-                localStorage.setItem(`referrals_of_${referrerId}`, JSON.stringify(referrals));
+        function copyInviteLink() {
+            const refDiv = document.getElementById('ref-link');
+            if (refDiv) {
+                navigator.clipboard.writeText(refDiv.innerText).then(() => {
+                    const t = translations[currentLang] || translations.az;
+                    showPopup(t.copy || "Kopyala", t.referralCopied || "Dəvət linkiniz kopyalandı!");
+                }).catch(err => { console.error("Kopyalama xətası: ", err); });
             }
         }
-    }
-}
 
-// 4. Dostların siyahısını progress-bar ilə səhvsiz göstərmək
-function displayMyReferrals() {
-    const listContainer = document.getElementById('referrals-list');
-    if (!listContainer) return;
-
-    let referrals = JSON.parse(localStorage.getItem(`referrals_of_${myUserId}`)) || [];
-
-    const t = translations[currentLang] || translations.az;
-
-    if (referrals.length === 0) {
-        listContainer.innerHTML = `<p style="color: #aaa; font-size: 11px; text-align: center; margin: 0;">${t.noReferrals || 'Hələ ki dəvət olunan dost yoxdur.'}</p>`;
-        return;
-    }
-
-    listContainer.innerHTML = "";
-    referrals.forEach((friend, index) => {
-        let statusText = "";
-        let statusColor = "#e67e22"; // Narıncı
-
-        if (friend.adsWatched >= REQUIRED_ADS) {
-            statusText = t.referralComplete || "🎉 Tamamlandı (+100 Xal)";
-            statusColor = "#2ecc71"; // Yaşıl
-        } else {
-            statusText = (t.referralProgress || "Gedişat: {count} / {required} Reklam").replace('{count}', friend.adsWatched).replace('{required}', REQUIRED_ADS);
+        function checkIncomingReferral() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const referrerId = urlParams.get('ref');
+            if (referrerId && referrerId !== myUserId) {
+                if (!localStorage.getItem('invited_by')) {
+                    localStorage.setItem('invited_by', referrerId);
+                    localStorage.setItem('my_watched_ads_for_referrer', "0");
+                    let referrals = JSON.parse(localStorage.getItem(`referrals_of_${referrerId}`)) || [];
+                    if (!referrals.some(ref => ref.id === myUserId)) {
+                        referrals.push({ id: myUserId, adsWatched: 0, rewarded: false });
+                        localStorage.setItem(`referrals_of_${referrerId}`, JSON.stringify(referrals));
+                    }
+                }
+            }
         }
 
-        listContainer.innerHTML += `
-            <div class="ref-progress-container" style="margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px; width: 100%;">
-                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
-                    <span style="color: #aaa;">${(t.referralFriendLabel || 'Dost #{index}').replace('{index}', index + 1)}</span>
-                    <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
-                </div>
-                <div class="progress-bar-bg" style="background: #222; border-radius: 4px; height: 6px; overflow: hidden; width: 100%;">
-                    <div class="progress-bar-fill" style="background: ${statusColor}; width: ${(friend.adsWatched / REQUIRED_ADS) * 100}%; height: 100%; transition: width 0.3s ease;"></div>
-                </div>
-            </div>
-        `;
-    });
-}
-
-        function openShareOptions() {
-            document.getElementById('share-popup').classList.add('show');
+        function displayMyReferrals() {
+            const listContainer = document.getElementById('referrals-list');
+            if (!listContainer) return;
+            let referrals = JSON.parse(localStorage.getItem(`referrals_of_${myUserId}`)) || [];
+            const t = translations[currentLang] || translations.az;
+            if (referrals.length === 0) {
+                listContainer.innerHTML = `<p style="color: #aaa; font-size: 11px; text-align: center; margin: 0;">${t.noReferrals || 'Hələ ki dəvət olunan dost yoxdur.'}</p>`;
+                return;
+            }
+            listContainer.innerHTML = "";
+            referrals.forEach((friend, index) => {
+                let statusText = ""; let statusColor = "#e67e22";
+                if (friend.adsWatched >= REQUIRED_ADS) { statusText = t.referralComplete || "🎉 Tamamlandı (+100 Xal)"; statusColor = "#2ecc71"; }
+                else { statusText = (t.referralProgress || "Gedişat: {count} / {required} Reklam").replace('{count}', friend.adsWatched).replace('{required}', REQUIRED_ADS); }
+                listContainer.innerHTML += `
+                    <div class="ref-progress-container" style="margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px; width: 100%;">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
+                            <span style="color: #aaa;">${(t.referralFriendLabel || 'Dost #{index}').replace('{index}', index + 1)}</span>
+                            <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
+                        </div>
+                        <div class="progress-bar-bg" style="background: #222; border-radius: 4px; height: 6px; overflow: hidden; width: 100%;">
+                            <div class="progress-bar-fill" style="background: ${statusColor}; width: ${(friend.adsWatched / REQUIRED_ADS) * 100}%; height: 100%; transition: width 0.3s ease;"></div>
+                        </div>
+                    </div>`;
+            });
         }
 
+        function openShareOptions() { document.getElementById('share-popup').classList.add('show'); }
         function shareToApp(platform) {
             closeModals();
             const linkText = encodeURIComponent(document.getElementById('ref-link').innerText);
             const message = encodeURIComponent("Dostum, bu botla reklam izləyib limitsiz qazan! Keçid et: ");
-            
-            if (platform === 'whatsapp') {
-                window.open(`https://api.whatsapp.com/send?text=${message}${linkText}`, '_blank');
-            } else if (platform === 'telegram') {
-                window.open(`https://t.me/share/url?url=${linkText}&text=${message}`, '_blank');
-            }
+            if (platform === 'whatsapp') { window.open(`https://api.whatsapp.com/send?text=${message}${linkText}`, '_blank'); }
+            else if (platform === 'telegram') { window.open(`https://t.me/share/url?url=${linkText}&text=${message}`, '_blank'); }
         }
 
-        // QLOBAL BİLDİRİŞ POPUP-U
+        // ==================== POPUP ====================
         function showPopup(title, text, isSuccess = true) {
             const popup = document.getElementById('global-popup');
             const icon = document.getElementById('popup-icon');
@@ -1819,57 +1673,36 @@ function displayMyReferrals() {
             showPopup.timeoutId = setTimeout(() => popup.classList.remove('show'), 2200);
         }
 
-        // ÇƏKİM TƏLƏBİ (Telegram-a Real-Time ötürmə daxil olmaqla)
+        // ==================== ÇƏKİM TƏLƏBİ ====================
         function requestWithdraw() {
             const cardNum = document.getElementById('card-input').value.trim();
             const amountInput = document.getElementById('withdraw-amount');
             const requestedAmount = parseFloat(amountInput ? amountInput.value : '');
             const isValidCard = /^\d{16}$/.test(cardNum) || /^TRC20:/i.test(cardNum) || /^0x[a-fA-F0-9]{20,}$/.test(cardNum);
-
-            if (cardNum === "") {
-                showPopup("Xəta!", "Zəhmət olmasa kart daxil edin.", false);
-                return;
-            }
-            if (!isValidCard) {
-                showPopup("Xəta!", "Kart nömrəsi düzgün yazılmayıb. 16 rəqəmli kart və ya TRC20/0x adresi daxil edin.", false);
-                return;
-            }
-            if (!requestedAmount || isNaN(requestedAmount)) {
-                showPopup("Xəta!", "Çəkmək istədiyiniz məbləği daxil edin.", false);
-                return;
-            }
-            if (requestedAmount < 12500) {
-                showPopup("Limit Çatmadı!", "Minimum pul çıxarma limiti 12,500 COIN-dir.", false);
-                return;
-            }
-            if (requestedAmount > balance) {
-                showPopup("Limit Çatmadı!", "Daxil etdiyiniz məbləğ mövcud balansdan yüksəkdir.", false);
-                return;
-            }
-
-            // Əgər Telegram daxilindəyiksə, məlumatı birbaşa Botun backendinə ötürürük
+            if (cardNum === "") { showPopup("Xəta!", "Zəhmət olmasa kart daxil edin.", false); return; }
+            if (!isValidCard) { showPopup("Xəta!", "Kart nömrəsi düzgün yazılmayıb. 16 rəqəmli kart və ya TRC20/0x adresi daxil edin.", false); return; }
+            if (!requestedAmount || isNaN(requestedAmount)) { showPopup("Xəta!", "Çəkmək istədiyiniz məbləği daxil edin.", false); return; }
+            if (requestedAmount < 12500) { showPopup("Limit Çatmadı!", "Minimum pul çıxarma limiti 12,500 COIN-dir.", false); return; }
+            if (requestedAmount > balance) { showPopup("Limit Çatmadı!", "Daxil etdiyiniz məbləğ mövcud balansdan yüksəkdir.", false); return; }
             if (tg) {
-                const withdrawData = {
-                    action: "withdraw_request",
-                    username: currentUser,
-                    card: cardNum,
-                    coins: requestedAmount.toFixed(2),
-                    usd: (requestedAmount / 12500).toFixed(2)
-                };
-                
-                // Məlumatı bota "web_app_data" kimi göndərir
+                const withdrawData = { action: "withdraw_request", username: currentUser, card: cardNum, coins: requestedAmount.toFixed(2), usd: (requestedAmount / 12500).toFixed(2) };
                 tg.sendData(JSON.stringify(withdrawData));
                 showPopup("Uğurlu!", "Çəkim tələbiniz bota göndərildi!");
-            } else {
-                // Brauzerdə yoxlama üçün normal xəbərdarlıq
-                showPopup("Sorğu Göndərildi!", `${requestedAmount.toFixed(2)} COIN üçün çıxarış yoxlanılır.`);
-            }
-
-            // Balansı çıxarılan məbləğ qədər azaldır
+            } else { showPopup("Sorğu Göndərildi!", `${requestedAmount.toFixed(2)} COIN üçün çıxarış yoxlanılır.`); }
             balance -= requestedAmount;
             localStorage.setItem('botBalance', balance);
+            syncBalanceToBackend(-requestedAmount, "add");
             document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
         }
+
+        // ==================== BAŞLANĞIC ====================
+        window.addEventListener('DOMContentLoaded', async () => {
+            loadFromLocalStorage();
+            await loadUserFromBackend();
+            generateReferralLink();
+            checkIncomingReferral();
+            displayMyReferrals();
+        });
     </script>
 </body>
 </html>
