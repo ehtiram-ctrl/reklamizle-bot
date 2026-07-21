@@ -354,7 +354,23 @@ async def register_user(request):
     ensure_user_exists(telegram_id, username=username)
     return cors_json_response({"ok": True, "message": "registered"})
 
-
+async def get_leaderboard(request):
+    users = list(users_col.find(
+        {"registered_username": {"$ne": None}},
+        {"registered_username": 1, "coins": 1, "frame": 1, "avatar": 1}
+    ).sort("coins", -1).limit(100))
+    
+    leaderboard = []
+    for u in users:
+        leaderboard.append({
+            "name": u.get("registered_username", "Unknown"),
+            "score": round(u.get("coins", 0)),
+            "frame": u.get("frame", "frame-none"),
+            "avatar": u.get("avatar", ""),
+            "isReal": True
+        })
+    
+    return cors_json_response({"ok": True, "leaderboard": leaderboard})
 # ============ WEB SERVER ============
 
 async def start_web_server():
@@ -375,6 +391,7 @@ async def start_web_server():
     app.router.add_get("/register_user", register_user)
     app.router.add_post("/register_user", register_user)
     app.router.add_options("/register_user", register_user)
+    app.router.add_get("/leaderboard", get_leaderboard)
 
     runner = web.AppRunner(app)
     await runner.setup()
