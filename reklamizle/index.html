@@ -1440,29 +1440,105 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             }
         }
 
-        function loadLeaderboard() {
-            const container = document.getElementById('leaderboard-container');
-            if (!container) return;
-            container.innerHTML = '';
-
-            const sampleUsers = [
-                { rank: 1, name: 'Ali', score: 2345, frame: 'frame-vip-gold' },
-                { rank: 2, name: 'Aysel', score: 1970, frame: 'frame-blue' },
-                { rank: 3, name: 'Kamran', score: 1525, frame: 'frame-red' }
-            ];
-
-            sampleUsers.forEach(user => {
-                container.innerHTML += `
-                    <div class="lb-item rank-${user.rank}">
-                        <div class="lb-rank">${user.rank}</div>
-                        <div class="lb-user">
-                            <div class="lb-avatar-circle ${user.frame}"><i class="fa-solid fa-user-astronaut" style="font-size:12px;"></i></div>
-                            <span>${user.name}</span>
-                        </div>
-                        <div class="lb-score">${user.score}</div>
-                    </div>`;
-            });
+        async function loadLeaderboard() {
+    const container = document.getElementById('leaderboard-container');
+    container.innerHTML = "";
+    
+    let leaderboardData = [];
+    
+    // 1. BACKEND-DƏN REAL İSTİFADƏÇİLƏRİ ÇƏK
+    try {
+        const response = await fetch(`${API_BASE}/get_leaderboard`);
+        const data = await response.json();
+        if (data.ok && data.leaderboard) {
+            leaderboardData = data.leaderboard;
         }
+    } catch (error) {
+        console.error("Sıralama yükləmə xətası:", error);
+    }
+    
+    // 2. ƏGƏR REAL İSTİFADƏÇİ AZDIRSA (10-dan az), BOTLARI ƏLAVƏ ET
+    const botData = [
+        { name: "SkyWalker", score: 2300, frame: "frame-vip-diamond", isReal: false },
+        { name: "CryptoKing", score: 1100, frame: "frame-vip-gold", isReal: false },
+        { name: "AdHunter", score: 905, frame: "frame-vip-gold", isReal: false },
+        { name: "Tofiq_00", score: 855, frame: "frame-red", isReal: false },
+        { name: "Shadow", score: 851, frame: "frame-blue", isReal: false },
+        { name: "Neo_Matrix", score: 754, frame: "frame-none", isReal: false },
+        { name: "CyberStar", score: 608, frame: "frame-blue", isReal: false },
+        { name: "Ferman", score: 607, frame: "frame-none", isReal: false },
+        { name: "BakuGamer", score: 563, frame: "frame-none", isReal: false },
+        { name: "Natiq_Ali", score: 502, frame: "frame-none", isReal: false }
+    ];
+    
+    // Botları əlavə et ki, minimum 10 nəfər olsun
+    if (leaderboardData.length < 10) {
+        const needed = 10 - leaderboardData.length;
+        leaderboardData = leaderboardData.concat(botData.slice(0, needed));
+    }
+    
+    // 3. ÖZÜNÜ ƏLAVƏ ET (əgər qeydiyyatdan keçibsə)
+    const myScore = Math.round(balance);
+    const myName = currentUser ? `@${currentUser}` : null;
+    
+    if (myName && !leaderboardData.some(u => u.name === myName)) {
+        leaderboardData.push({
+            name: myName,
+            score: myScore,
+            frame: userFrame,
+            avatar: userAvatar,
+            isReal: true,
+            isRealMe: true
+        });
+    }
+    
+    // 4. SIRALA (böyükdən kiçiyə)
+    leaderboardData.sort((a, b) => b.score - a.score);
+    
+    // 5. RENDER ET
+    const myRank = leaderboardData.findIndex(u => u.isRealMe) + 1;
+    const top10 = leaderboardData.slice(0, 10);
+    
+    top10.forEach((user, index) => {
+        const rank = index + 1;
+        let rankLabel = rank;
+        let itemClass = "";
+        
+        if (rank === 1) { rankLabel = "🥇"; itemClass = "rank-1"; }
+        else if (rank === 2) { rankLabel = "🥈"; itemClass = "rank-2"; }
+        else if (rank === 3) { rankLabel = "🥉"; itemClass = "rank-3"; }
+        if (user.isRealMe) itemClass += " rank-me";
+        
+        const avatarHtml = user.avatar 
+            ? `<img src="${user.avatar}" alt="avatar">` 
+            : `<i class="fa-solid fa-user-astronaut" style="font-size: 11px; color: #888;"></i>`;
+        
+        container.innerHTML += `
+            <div class="lb-item ${itemClass}">
+                <div class="lb-rank">${rankLabel}</div>
+                <div class="lb-user">
+                    <div class="lb-avatar-circle ${user.frame}">${avatarHtml}</div>
+                    <span>${user.name}</span>
+                </div>
+                <div class="lb-score">${user.score}</div>
+            </div>`;
+    });
+    
+    // 6. ƏGƏR İLK 10-LUQDA DEYİLSƏNSƏ, AYRI GÖSTƏR
+    if (myRank > 10) {
+        container.innerHTML += `<div style="text-align:center; color:#555; margin: 5px 0;"><i class="fa-solid fa-ellipsis-vertical"></i></div>`;
+        const myAvatarHtml = userAvatar ? `<img src="${userAvatar}" alt="me">` : `<i class="fa-solid fa-user-astronaut" style="font-size:11px;"></i>`;
+        container.innerHTML += `
+            <div class="lb-item rank-me">
+                <div class="lb-rank">${myRank}</div>
+                <div class="lb-user">
+                    <div class="lb-avatar-circle ${userFrame}">${myAvatarHtml}</div>
+                    <span>${myName}</span>
+                </div>
+                <div class="lb-score">${myScore}</div>
+            </div>`;
+    }
+}
 
         function closeModals() {
             document.querySelectorAll('.popup.show, .modal.show').forEach(el => el.classList.remove('show'));
