@@ -11,6 +11,20 @@
 
     <style>
         /* ÜMUMİ DİZAYN AYARLARI */
+        .info-icon {
+            margin-left: 8px;
+            font-size: 14px;
+            color: #d4af37;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            z-index: 2;
+            position: relative;
+        }
+        .info-icon:hover {
+            opacity: 1;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -177,6 +191,27 @@
             margin-top: 4px;
         }
 
+        .limit-bar-track {
+            width: 90%;
+            max-width: 260px;
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 10px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .limit-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #2ecc71, #58d68d);
+            transition: width 0.35s ease;
+        }
+
+        .limit-bar-fill.low {
+            background: linear-gradient(90deg, #ff4d4d, #ff8a8a);
+        }
+
         /* PROFİL VƏ AVATAR AYARLARI */
         .avatar-wrapper {
             position: relative;
@@ -227,25 +262,55 @@
         }
         .edit-pen:hover { transform: scale(1.1); }
 
-        /* Çərçivə Sinifləri (Profil üçün) */
-        .frame-none { border: 2.5px solid #333; }
-        .frame-blue { border: 3.5px solid #00aaff; box-shadow: 0 0 12px rgba(0,170,255,0.6); }
-        .frame-red { border: 3.5px solid #ff3333; box-shadow: 0 0 12px rgba(255,51,51,0.6); }
-        .frame-vip-gold { border: 4px solid #ffd700; box-shadow: 0 0 18px #ffd700; animation: pulseGold 2s infinite; }
-        .frame-vip-diamond { border: 4px solid #00ffff; box-shadow: 0 0 20px #00ffff, inset 0 0 10px #00ffff; }
+        /* ============ SADƏ RƏNGLİ ÇƏRÇİVƏLƏR ============ */
+        .frame-blue { border: 3px solid #00aaff; }
+        .frame-red { border: 3px solid #ff3333; }
+        .frame-green { border: 3px solid #00ff00; }
+        .frame-yellow { border: 3px solid #ffff00; }
 
-        @keyframes pulseGold {
-            0% { box-shadow: 0 0 10px #ffd700; }
-            50% { box-shadow: 0 0 22px #ffd700; }
-            100% { box-shadow: 0 0 10px #ffd700; }
+        /* ============ QIZIL ÇƏRÇİVƏ (100 COIN) ============ */
+        .frame-gold {
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 10px #ffd700, inset 0 0 5px rgba(255,215,0,0.3);
+            animation: goldSparkle 2s ease-in-out infinite;
+        }
+
+        @keyframes goldSparkle {
+            0%, 100% { 
+                box-shadow: 0 0 10px #ffd700, inset 0 0 5px rgba(255,215,0,0.3);
+                border-color: #ffd700;
+            }
+            50% { 
+                box-shadow: 0 0 20px #ffd700, 0 0 30px #ffaa00, inset 0 0 10px rgba(255,215,0,0.5);
+                border-color: #ffec8b;
+            }
+        }
+
+        /* ============ DIAMOND ÇƏRÇİVƏ (200 COIN) ============ */
+        .frame-diamond {
+            border: 3px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff, inset 0 0 5px rgba(0,255,255,0.3);
+            animation: diamondSparkle 2s ease-in-out infinite;
+        }
+
+        @keyframes diamondSparkle {
+            0%, 100% { 
+                box-shadow: 0 0 10px #00ffff, inset 0 0 5px rgba(0,255,255,0.3);
+                border-color: #00ffff;
+            }
+            50% { 
+                box-shadow: 0 0 20px #00ffff, 0 0 30px #ff00ff, inset 0 0 10px rgba(0,255,255,0.5);
+                border-color: #e0ffff;
+            }
         }
 
         /* SIRALAMA (LEADERBOARD) */
         .leaderboard-list {
             width: 95%;
-            max-height: 400px;
+            max-height: calc(100vh - 50px);  /* YENİ: ekran ölçüsünə uyğun */
             overflow-y: auto;
             padding-right: 3px;
+            flex: 1;
         }
         .leaderboard-list::-webkit-scrollbar { width: 0px; }
 
@@ -403,7 +468,18 @@
             opacity: 0;
             pointer-events: none;
             transition: all 0.3s ease;
-            width: 85%;
+            
+            /* YENİ: Telefon içində qalsın */
+            width: 90%;
+            max-width: 320px;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+        }
+
+        .popup.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
         }
         .popup.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
 
@@ -782,6 +858,32 @@
             border-color: rgba(255,255,255,.12);
             background: rgba(255,255,255,.04);
         }
+
+                /* Geri sayım timer */
+        #wheel-timer span {
+            display: inline-block;
+            min-width: 28px;
+        }
+
+        /* Çarx fırlanma animasiyası */
+        .wheel-graphic.spinning {
+            animation: wheelSpin 2s ease-in-out infinite;
+        }
+
+        @keyframes wheelSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Son qalib parıltısı */
+        #last-winner {
+            animation: winnerGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes winnerGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(212,175,55,0.2); }
+            50% { box-shadow: 0 0 15px rgba(212,175,55,0.4); }
+        }
     </style>
 </head>
 <body>
@@ -801,11 +903,14 @@
                 <option value="tr">TR</option>
                 <option value="ru">RU</option>
             </select>
-            <div class="balance-card">
-                <div class="sparkles"></div>
-                <i class="fa-solid fa-coins"></i>
-                <span id="balance-display" class="balance-text">0.00 COIN</span>
-            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="balance-card">
+                    <div class="sparkles"></div>
+                    <i class="fa-solid fa-coins"></i>
+                    <span id="balance-display" class="balance-text">0.00 COIN</span>
+                </div>
+                    <i class="fa-solid fa-triangle-exclamation info-icon" onclick="openInfoModal()"></i>
+            </div>    
         </div>
 
         <div class="main-content">
@@ -819,6 +924,9 @@
                         <i class="fa-solid fa-play"></i> <span data-translate="ad1">Premium Reklam 1</span>
                     </button>
                     <span id="limit-label-1" class="limit-text">Limit: 50 / 50 qaldı</span>
+                    <div class="limit-bar-track">
+                        <div id="limit-bar-1" class="limit-bar-fill" style="width:100%;"></div>
+                    </div>
                 </div>
 
                 <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
@@ -826,6 +934,9 @@
                         <i class="fa-solid fa-bolt"></i> <span data-translate="ad2">Premium Reklam 2</span>
                     </button>
                     <span id="limit-label-2" class="limit-text">Limit: 50 / 50 qaldı</span>
+                    <div class="limit-bar-track">
+                        <div id="limit-bar-2" class="limit-bar-fill" style="width:100%;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -920,10 +1031,10 @@
 
             <div id="profile-menu-modal" class="modal">
                 <div class="modal-content">
-                    <h3 style="color:#d4af37; margin-bottom: 15px; font-size: 16px;">Profil Ayarları</h3>
-                    <div class="menu-item" onclick="openFrameShop()"><i class="fa-solid fa-ring"></i> Çərçivələr</div>
-                    <div class="menu-item" onclick="changePicture()"><i class="fa-solid fa-image"></i> Şəkli Dəyişdir</div>
-                    <div class="menu-item" onclick="deletePicture()" style="color: #ff4d4d;"><i class="fa-solid fa-trash"></i> Şəkli Sil</div>
+                    <h3 style="color:#d4af37; margin-bottom: 15px; font-size: 16px;" data-translate="profileSettingsTitle">Profil Ayarları</h3>
+                    <div class="menu-item" onclick="changePicture()"><i class="fa-solid fa-camera"></i> <span data-translate="addProfilePic">Profil əlavə et</span></div>
+                    <div class="menu-item" onclick="openFrameShop()"><i class="fa-solid fa-ring"></i> <span data-translate="framesMenuItem">Çərçivələr</span></div>
+                    <div class="menu-item" onclick="deletePicture()" style="color: #ff4d4d;"><i class="fa-solid fa-trash"></i> <span data-translate="deleteProfilePic">Profili sil</span></div>
                     <button id="profile-close" class="premium-btn btn-outline" style="margin-top:15px; width:100%; padding: 10px;" onclick="closeModals()"></button>
                     
                     <input type="file" id="file-input" style="display: none;" accept="image/*" onchange="previewImage(event)">
@@ -932,37 +1043,100 @@
 
             <div id="frame-shop-modal" class="modal">
                 <div class="modal-content" style="padding: 15px;">
-                    <h3 style="color:#d4af37; margin-bottom: 15px; font-size: 16px;">Çərçivə Mağazası</h3>
+                    <h3 style="color:#d4af37; margin-bottom: 15px; font-size: 16px;">
+                        <i class="fa-solid fa-ring"></i> <span data-translate="frameShopTitle">Çərçivə Mağazası</span>
+                    </h3>
+                    
+                    <!-- SADƏ RƏNGLƏR (20 COIN) -->
+                    <p style="color:#888; font-size: 11px; text-align: left; margin-bottom: 8px;">🎨 <span data-translate="frameSimpleColors">Sadə Rənglər — 20 COIN</span></p>
                     
                     <div class="frame-shop-item">
-                        <span style="font-size: 13px;"><i class="fa-solid fa-circle" style="color:#00aaff;"></i> Mavi Çərçivə</span>
-                        <button id="buy-btn-blue" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="buyFrame('frame-blue', 2)">2 COIN</button>
+                        <span style="font-size: 13px;"><i class="fa-solid fa-circle" style="color:#00aaff;"></i> <span data-translate="frameBlue">Göy</span></span>
+                        <button id="btn-frame-blue" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="handleFrame('frame-blue', 20)">20 COIN</button>
                     </div>
+                    
                     <div class="frame-shop-item">
-                        <span style="font-size: 13px;"><i class="fa-solid fa-circle" style="color:#ff3333;"></i> Qırmızı Çərçivə</span>
-                        <button id="buy-btn-red" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="buyFrame('frame-red', 2)">2 COIN</button>
+                        <span style="font-size: 13px;"><i class="fa-solid fa-circle" style="color:#ff3333;"></i> <span data-translate="frameRed">Qırmızı</span></span>
+                        <button id="btn-frame-red" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="handleFrame('frame-red', 20)">20 COIN</button>
                     </div>
+                    
                     <div class="frame-shop-item">
-                        <span style="font-size: 13px; color:#ffd700;"><i class="fa-solid fa-crown"></i> VIP Qızıl</span>
-                        <button id="buy-btn-gold" class="premium-btn btn-gold" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="buyFrame('frame-vip-gold', 10)">10 COIN</button>
+                        <span style="font-size: 13px;"><i class="fa-solid fa-circle" style="color:#00ff00;"></i> <span data-translate="frameGreen">Yaşıl</span></span>
+                        <button id="btn-frame-green" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="handleFrame('frame-green', 20)">20 COIN</button>
                     </div>
+                    
                     <div class="frame-shop-item">
-                        <span style="font-size: 13px; color:#00ffff; text-shadow: 0 0 5px #00ffff;"><i class="fa-regular fa-gem"></i> VIP Almaz</span>
-                        <button id="buy-btn-diamond" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; border-color:#00ffff; color:#00ffff; font-size:12px;" onclick="buyFrame('frame-vip-diamond', 20)">20 COIN</button>
+                        <span style="font-size: 13px;"><i class="fa-solid fa-circle" style="color:#ffff00;"></i> <span data-translate="frameYellow">Sarı</span></span>
+                        <button id="btn-frame-yellow" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="handleFrame('frame-yellow', 20)">20 COIN</button>
+                    </div>
+                    
+                    <!-- QIZIL (100 COIN) -->
+                    <p style="color:#888; font-size: 11px; text-align: left; margin: 15px 0 8px;">👑 <span data-translate="frameGoldCategory">Qızıl — 100 COIN ✨</span></p>
+                    
+                    <div class="frame-shop-item">
+                        <span style="font-size: 13px; color:#ffd700;"><i class="fa-solid fa-crown"></i> <span data-translate="frameGold">Qızıl</span></span>
+                        <button id="btn-frame-gold" class="premium-btn btn-gold" style="width:auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="handleFrame('frame-gold', 100)">100 COIN</button>
+                    </div>
+                    
+                    <!-- DIAMOND (200 COIN) -->
+                    <p style="color:#888; font-size: 11px; text-align: left; margin: 15px 0 8px;">💎 <span data-translate="frameDiamondCategory">Diamond — 200 COIN ✨✨</span></p>
+                    
+                    <div class="frame-shop-item">
+                        <span style="font-size: 13px; color:#00ffff;"><i class="fa-regular fa-gem"></i> <span data-translate="frameDiamond">Diamond</span></span>
+                        <button id="btn-frame-diamond" class="premium-btn btn-outline" style="width:auto; padding: 5px 12px; margin:0; border-color:#00ffff; color:#00ffff; font-size:12px;" onclick="handleFrame('frame-diamond', 200)">200 COIN</button>
                     </div>
 
-                    <button id="frame-close" class="premium-btn" style="background:#333; color:#fff; margin-top:15px; width:100%; padding: 10px;" onclick="closeModals()"></button>
+                    <button id="frame-close" class="premium-btn" style="background:#333; color:#fff; margin-top:15px; width:100%; padding: 10px;" onclick="closeModals()">Geri</button>
                 </div>
             </div>
 
             <div id="page-wheel" class="page wheel-page">
-                <p class="wheel-info" data-translate="wheelInfo">Qoşulma haqqı: 20 Coin.
-Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
-                <div class="wheel-graphic">
+    
+                <!-- Geri Sayım Timer -->
+                <div id="wheel-timer" style="text-align: center; margin-bottom: 10px;">
+                    <p style="font-size: 11px; color: #888; margin-bottom: 5px;" data-translate="wheelNextSpin">Növbəti fırlanmaya:</p>
+                    <div style="font-size: 24px; font-weight: 700; color: #d4af37; font-family: monospace;">
+                        <span id="timer-days">00</span>:
+                        <span id="timer-hours">00</span>:
+                        <span id="timer-minutes">00</span>:
+                        <span id="timer-seconds">00</span>
+                    </div>
+                </div>
+                
+                <!-- Son Qalib -->
+                <div id="last-winner" style="display: none; text-align: center; margin-bottom: 15px; padding: 10px; background: rgba(212,175,55,0.1); border-radius: 12px; border: 1px solid rgba(212,175,55,0.3);">
+                    <p style="font-size: 10px; color: #888; margin-bottom: 5px;">🎉 <span data-translate="wheelLastWinner">Son qalib:</span></p>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <div id="winner-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: #222; display: flex; align-items: center; justify-content: center; font-size: 14px;">👑</div>
+                        <span id="winner-name" style="font-weight: 600; color: #ffd700;"></span>
+                        <span id="winner-amount" style="color: #d4af37; font-size: 12px;"></span>
+                    </div>
+                </div>
+                
+                <!-- Çarx -->
+                <div class="wheel-graphic" id="main-wheel" style="width: 220px; height: 220px;">
                     <div class="wheel-center"></div>
                 </div>
+                
+                <!-- İştirakçı Sayı + Büdcə -->
+                <div style="text-align: center; margin: 10px 0;">
+                    <p style="font-size: 11px; color: #888;">
+                        <span id="participant-count">0</span> <span data-translate="wheelParticipantLabel">iştirakçı</span> | <span data-translate="wheelBudget">Büdcə:</span> <span id="total-pool" style="color: #d4af37; font-weight: 600;">0</span> COIN
+                    </p>
+                </div>
+                
+                <!-- İştirakçı Çipi -->
                 <div id="wheel-user-chip" class="wheel-user-chip"></div>
-                <button class="premium-btn btn-gold" style="width: 78%; padding: 10px; margin-top: 6px;" onclick="joinWheel()" data-translate="joinWheelBtn">-20 Coin</button>
+                
+                <!-- Qoşulma Düyməsi / Vəziyyət -->
+                <div id="wheel-action" style="width: 100%; display: flex; justify-content: center;">
+                    <button id="join-wheel-btn" class="premium-btn btn-gold" style="width: 78%; padding: 14px;" onclick="joinWheel()">
+                        <i class="fa-solid fa-ticket"></i> <span data-translate="joinWheelBtn">-20 Coin</span>
+                    </button>
+                </div>
+                
+                <p id="wheel-status-text" style="font-size: 10px; color: #666; margin-top: 8px;"></p>
+                
             </div>
 
         </div>
@@ -970,7 +1144,7 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
         <nav class="bottom-nav">
             <button class="nav-item active" onclick="switchPage('home', this)"><i class="fa-solid fa-house"></i><span data-translate="navHome">Ana Səhifə</span></button>
             <button class="nav-item" onclick="switchPage('leaderboard', this); loadLeaderboard();"><i class="fa-solid fa-trophy"></i><span data-translate="navLeaderboard">Sıralama</span></button>
-            <button class="nav-item" onclick="switchPage('wheel', this); renderWheelParticipants();"><i class="fa-solid fa-arrows-rotate"></i><span data-translate="navWheel">Çarx</span></button>
+            <button class="nav-item" onclick="switchPage('wheel', this); loadWheelStatus();"><i class="fa-solid fa-arrows-rotate"></i><span data-translate="navWheel">Çarx</span></button>
             <button class="nav-item" onclick="switchPage('referral', this)"><i class="fa-solid fa-rocket"></i><span data-translate="navBonus">Bonus</span></button>
             <button class="nav-item" id="nav-account" onclick="switchPage('account', this)"><i class="fa-solid fa-user"></i><span data-translate="navAccount">Hesab</span></button>
         </nav>
@@ -1017,7 +1191,7 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 joinWheelBtn: "-20 Coin",
                 welcomeGuest: "Xoş gəldin!",
                 welcomeUser: "Xoş gəldin, {name}!",
-                wheelParticipantLabel: "İştirakçı",
+                wheelParticipantLabel: "iştirakçı",
                 warningTitle: "Diqqət!",
                 warningText: "Qazandığınız COIN-lərin itməməsi üçün zəhmət olmasa ilk öncə hesab yaradın.",
                 warningCancel: "Ləğv Et",
@@ -1027,7 +1201,29 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 profileClose: "Bağla",
                 frameClose: "Geri",
                 loadingAd: "Reklam yoxlanılır...",
-                loadingWait: "Zəhmət olmasa 2 saniyə gözləyin"
+                loadingWait: "Zəhmət olmasa 2 saniyə gözləyin",
+                profileSettingsTitle: "Profil Ayarları",
+                addProfilePic: "Profil əlavə et",
+                framesMenuItem: "Çərçivələr",
+                deleteProfilePic: "Profili sil",
+                frameShopTitle: "Çərçivə Mağazası",
+                frameSimpleColors: "Sadə Rənglər — 20 COIN",
+                frameBlue: "Göy",
+                frameRed: "Qırmızı",
+                frameGreen: "Yaşıl",
+                frameYellow: "Sarı",
+                frameGoldCategory: "Qızıl — 100 COIN ✨",
+                frameGold: "Qızıl",
+                frameDiamondCategory: "Diamond — 200 COIN ✨✨",
+                frameDiamond: "Diamond",
+                wheelNextSpin: "Növbəti fırlanmaya:",
+                wheelLastWinner: "Son qalib:",
+                wheelBudget: "Büdcə:",
+                noReferrals: "Hələ ki dəvət olunan dost yoxdur.",
+                referralComplete: "🎉 Tamamlandı (+100 Xal)",
+                referralProgress: "Gedişat: {count} / {required} Reklam",
+                referralFriendLabel: "Dost #{index}",
+                referralCopied: "Dəvət linkiniz kopyalandı!"
             },
             en: {
                 title: "Start Earning",
@@ -1058,7 +1254,7 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 joinWheelBtn: "-20 Coin",
                 welcomeGuest: "Welcome!",
                 welcomeUser: "Welcome, {name}!",
-                wheelParticipantLabel: "Participant",
+                wheelParticipantLabel: "participant",
                 warningTitle: "Attention!",
                 warningText: "To avoid losing your earned COINS, please create an account first.",
                 warningCancel: "Cancel",
@@ -1068,7 +1264,29 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 profileClose: "Close",
                 frameClose: "Back",
                 loadingAd: "Verifying Ad...",
-                loadingWait: "Please wait 2 seconds"
+                loadingWait: "Please wait 2 seconds",
+                profileSettingsTitle: "Profile Settings",
+                addProfilePic: "Add Profile Picture",
+                framesMenuItem: "Frames",
+                deleteProfilePic: "Delete Profile Picture",
+                frameShopTitle: "Frame Shop",
+                frameSimpleColors: "Simple Colors — 20 COIN",
+                frameBlue: "Blue",
+                frameRed: "Red",
+                frameGreen: "Green",
+                frameYellow: "Yellow",
+                frameGoldCategory: "Gold — 100 COIN ✨",
+                frameGold: "Gold",
+                frameDiamondCategory: "Diamond — 200 COIN ✨✨",
+                frameDiamond: "Diamond",
+                wheelNextSpin: "Next spin in:",
+                wheelLastWinner: "Last winner:",
+                wheelBudget: "Pool:",
+                noReferrals: "No invited friends yet.",
+                referralComplete: "🎉 Completed (+100 Points)",
+                referralProgress: "Progress: {count} / {required} Ads",
+                referralFriendLabel: "Friend #{index}",
+                referralCopied: "Your invite link has been copied!"
             },
             tr: {
                 title: "Kazanmaya Başla",
@@ -1099,7 +1317,7 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 joinWheelBtn: "-20 Coin",
                 welcomeGuest: "Hoş geldiniz!",
                 welcomeUser: "Hoş geldiniz, {name}!",
-                wheelParticipantLabel: "Katılımcı",
+                wheelParticipantLabel: "katılımcı",
                 warningTitle: "Dikkat!",
                 warningText: "Kazanılan COIN'lerin kaybolmaması için önce hesap oluşturun.",
                 warningCancel: "İptal",
@@ -1109,7 +1327,29 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 profileClose: "Kapat",
                 frameClose: "Geri",
                 loadingAd: "Reklam Doğrulanıyor...",
-                loadingWait: "Lütfen 2 saniye bekleyin"
+                loadingWait: "Lütfen 2 saniye bekleyin",
+                profileSettingsTitle: "Profil Ayarları",
+                addProfilePic: "Profil Ekle",
+                framesMenuItem: "Çerçeveler",
+                deleteProfilePic: "Profili Sil",
+                frameShopTitle: "Çerçeve Mağazası",
+                frameSimpleColors: "Basit Renkler — 20 COIN",
+                frameBlue: "Mavi",
+                frameRed: "Kırmızı",
+                frameGreen: "Yeşil",
+                frameYellow: "Sarı",
+                frameGoldCategory: "Altın — 100 COIN ✨",
+                frameGold: "Altın",
+                frameDiamondCategory: "Diamond — 200 COIN ✨✨",
+                frameDiamond: "Diamond",
+                wheelNextSpin: "Sonraki çevirmeye:",
+                wheelLastWinner: "Son kazanan:",
+                wheelBudget: "Ödül havuzu:",
+                noReferrals: "Henüz davet edilen arkadaş yok.",
+                referralComplete: "🎉 Tamamlandı (+100 Puan)",
+                referralProgress: "İlerleme: {count} / {required} Reklam",
+                referralFriendLabel: "Arkadaş #{index}",
+                referralCopied: "Davet linkiniz kopyalandı!"
             },
             ru: {
                 title: "Начни Зарабатывать",
@@ -1140,7 +1380,7 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 joinWheelBtn: "-20 Coin",
                 welcomeGuest: "Добро пожаловать!",
                 welcomeUser: "Добро пожаловать, {name}!",
-                wheelParticipantLabel: "Участник",
+                wheelParticipantLabel: "участник(ов)",
                 warningTitle: "Внимание!",
                 warningText: "Чтобы ваши заработанные COIN не пропали, сначала создайте аккаунт.",
                 warningCancel: "Отмена",
@@ -1150,7 +1390,29 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 profileClose: "Закрыть",
                 frameClose: "Назад",
                 loadingAd: "Проверка рекламы...",
-                loadingWait: "Пожалуйста, подождите 2 секунды"
+                loadingWait: "Пожалуйста, подождите 2 секунды",
+                profileSettingsTitle: "Настройки профиля",
+                addProfilePic: "Добавить фото",
+                framesMenuItem: "Рамки",
+                deleteProfilePic: "Удалить фото",
+                frameShopTitle: "Магазин рамок",
+                frameSimpleColors: "Простые цвета — 20 COIN",
+                frameBlue: "Синий",
+                frameRed: "Красный",
+                frameGreen: "Зелёный",
+                frameYellow: "Жёлтый",
+                frameGoldCategory: "Золото — 100 COIN ✨",
+                frameGold: "Золото",
+                frameDiamondCategory: "Diamond — 200 COIN ✨✨",
+                frameDiamond: "Diamond",
+                wheelNextSpin: "До следующего вращения:",
+                wheelLastWinner: "Последний победитель:",
+                wheelBudget: "Призовой фонд:",
+                noReferrals: "Пока нет приглашённых друзей.",
+                referralComplete: "🎉 Завершено (+100 баллов)",
+                referralProgress: "Прогресс: {count} / {required} реклам",
+                referralFriendLabel: "Друг #{index}",
+                referralCopied: "Ваша реферальная ссылка скопирована!"
             }
         };
 
@@ -1195,6 +1457,9 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                     userFrame = data.frame || 'frame-none';
                     userAvatar = data.avatar || '';
                     ownedFrames = data.owned_frames || ['frame-none'];
+
+                    // Çərçivə mağazası düymələrini yenilə (əgər mağaza açıqdırsa)
+                    updateFrameShopButtons();
                     dailyLimits = data.daily_limits || {ad1: 50, ad2: 50, lastDate: new Date().toLocaleDateString()};
                     wheelParticipants = data.wheel_participants || [];
                     
@@ -1221,7 +1486,6 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             checkLoginState();
             applySavedAvatarAndFrame();
             updateLimitLabels();
-            renderWheelParticipants();
         }
 
         function loadFromLocalStorage() {
@@ -1240,6 +1504,34 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             }
         }
 
+        async function claimAdReward(adNum) {
+            if (!telegramUserId) {
+                showPopup("Xəta!", "Telegram istifadəçisi tapılmadı.", false);
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/claim_ad_reward`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ telegram_id: telegramUserId, ad_slot: adNum })
+                });
+                const data = await response.json();
+                if (data.ok) {
+                    balance = data.new_balance;
+                    dailyLimits = data.daily_limits;
+                    localStorage.setItem('botBalance', balance);
+                    localStorage.setItem('dailyLimits', JSON.stringify(dailyLimits));
+                    document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+                    updateLimitLabels();
+                } else {
+                    showPopup("Xəta!", data.message || "Mükafat alınmadı.", false);
+                }
+            } catch (error) {
+                console.error("Mükafat xətası:", error);
+                showPopup("Xəta!", "Server ilə əlaqə qurula bilmədi.", false);
+            }
+        }
+
         async function syncBalanceToBackend(amount, operation = "add") {
             if (!telegramUserId || !isBackendLoaded) return;
             try {
@@ -1254,22 +1546,6 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 });
             } catch (error) {
                 console.error("Balans sinxronizasiya xətası:", error);
-            }
-        }
-
-        async function syncLimitsToBackend() {
-            if (!telegramUserId || !isBackendLoaded) return;
-            try {
-                await fetch(`${API_BASE}/update_limits`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        telegram_id: telegramUserId,
-                        limits: dailyLimits
-                    })
-                });
-            } catch (error) {
-                console.error("Limit sinxronizasiya xətası:", error);
             }
         }
 
@@ -1336,7 +1612,6 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             if (frameClose) frameClose.innerText = translations[lang].frameClose || frameClose.innerText;
 
             updateWelcomeText();
-            renderWheelParticipants();
             displayMyReferrals();
             updateLimitLabels();
         }
@@ -1349,7 +1624,6 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
                 dailyLimits.ad2 = 50;
                 dailyLimits.lastDate = today;
                 localStorage.setItem('dailyLimits', JSON.stringify(dailyLimits));
-                syncLimitsToBackend();
             }
         }
 
@@ -1362,6 +1636,19 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
 
             document.getElementById('ad-btn-1').disabled = (dailyLimits.ad1 <= 0);
             document.getElementById('ad-btn-2').disabled = (dailyLimits.ad2 <= 0);
+
+            const bar1 = document.getElementById('limit-bar-1');
+            const bar2 = document.getElementById('limit-bar-2');
+            const pct1 = (dailyLimits.ad1 / 50) * 100;
+            const pct2 = (dailyLimits.ad2 / 50) * 100;
+            if (bar1) {
+                bar1.style.width = pct1 + '%';
+                bar1.classList.toggle('low', dailyLimits.ad1 <= 10);
+            }
+            if (bar2) {
+                bar2.style.width = pct2 + '%';
+                bar2.classList.toggle('low', dailyLimits.ad2 <= 10);
+            }
             updateShopButtons();
         }
 
@@ -1392,23 +1679,9 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             loader.style.display = 'flex';
             window.open(adUrl, '_blank');
 
-            setTimeout(() => {
+            setTimeout(async () => {
                 loader.style.display = 'none';
-
-                const randomAmount = (Math.random() * (6.00 - 5.00) + 5.00);
-                balance += randomAmount;
-                dailyLimits[limitKey] -= 1;
-                
-                // localStorage
-                localStorage.setItem('botBalance', balance);
-                localStorage.setItem('dailyLimits', JSON.stringify(dailyLimits));
-                
-                // Backend-ə sinxronlaşdır
-                syncBalanceToBackend(randomAmount, "add");
-                syncLimitsToBackend();
-
-                document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
-                updateLimitLabels();
+                await claimAdReward(adNum);
 
                 showPopup("Uğurlu!", `+${randomAmount.toFixed(2)} COIN!`);
             }, 2000);
@@ -1419,26 +1692,162 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             switchPage('account', document.getElementById('nav-account'));
         }
 
-        // ==================== ÇARX FUNKSİYALARI ====================
-        function renderWheelParticipants() {
-            const chip = document.getElementById('wheel-user-chip');
-            if (!chip) return;
+        // ==================== YENI ÇARX FUNKSİYALARI ====================
 
-            const displayName = currentUser ? `@${currentUser}` : 'Telegram istifadəçisi';
-            const labelText = (translations[currentLang] && translations[currentLang].wheelParticipantLabel) || 'İştirakçı';
-            chip.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
-                    <div style="font-size:13px; font-weight:700; color:#fff;">${labelText}</div>
-                    <div style="font-size:12px; color:#ccc;">${displayName}</div>
-                    <div style="font-size:11px; color:#999;">${wheelParticipants.length || 0} ${labelText}</div>
-                </div>
-            `;
+        let wheelData = {
+            isJoined: false,
+            participants: [],
+            totalPool: 0,
+            nextSpin: null
+        };
 
-            const avatarEl = document.getElementById('user-avatar');
-            if (avatarEl) {
-                avatarEl.className = `profile-avatar ${userFrame || 'frame-none'}`;
+        async function loadWheelStatus() {
+            if (!telegramUserId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/wheel_status?telegram_id=${telegramUserId}`);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    wheelData.isJoined = data.is_joined;
+                    wheelData.participants = data.participants;
+                    wheelData.totalPool = data.total_pool;
+                    
+                    updateWheelUI(data);
+                }
+            } catch (error) {
+                console.error("Çarx status xətası:", error);
             }
         }
+
+        function updateWheelUI(data) {
+            // İştirakçı sayı + büdcə
+            document.getElementById('participant-count').innerText = data.participant_count;
+            document.getElementById('total-pool').innerText = data.total_pool;
+            
+            // Son qalib
+            if (data.last_winner) {
+                const lw = document.getElementById('last-winner');
+                lw.style.display = 'block';
+                document.getElementById('winner-name').innerText = '@' + data.last_winner.username;
+                document.getElementById('winner-amount').innerText = '+' + data.last_winner.amount + ' COIN';
+            }
+            
+            // İştirakçı çipi
+            const chip = document.getElementById('wheel-user-chip');
+            if (data.is_joined) {
+                chip.innerHTML = `
+                    <span style="font-size:10px; color:#2ecc71;">✅ İştirak edirsiniz</span>
+                    <strong style="font-size:13px; color:#f8fafc;">@${currentUser || 'Siz'}</strong>
+                `;
+            } else {
+                chip.innerHTML = `
+                    <span style="font-size:10px; color:#94a3b8;">İştirakçı</span>
+                    <strong style="font-size:13px; color:#f8fafc;">@${currentUser || 'Qonaq'}</strong>
+                `;
+            }
+            
+            // Düymə vəziyyəti
+            const btn = document.getElementById('join-wheel-btn');
+            const statusText = document.getElementById('wheel-status-text');
+            
+            if (data.is_joined) {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Qoşuldunuz';
+                btn.disabled = true;
+                btn.style.background = '#2ecc71';
+                statusText.innerText = 'Bu həftə artıq iştirak edirsiniz';
+            } else if (!currentUser) {
+                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Qeydiyyat lazımdır';
+                btn.disabled = true;
+                statusText.innerText = 'Çarxa qoşulmaq üçün qeydiyyatdan keçin';
+            } else if (balance < 20) {
+                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Balans yetmir';
+                btn.disabled = true;
+                statusText.innerText = 'Minimum 20 COIN lazımdır';
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-ticket"></i> -20 Coin';
+                btn.disabled = false;
+                statusText.innerText = 'Qoşulmaq üçün basın';
+            }
+        }
+
+        async function joinWheel() {
+            if (!telegramUserId || !currentUser) {
+                showPopup("Diqqət!", "Əvvəlcə qeydiyyatdan keçin", false);
+                return;
+            }
+            
+            if (balance < 20) {
+                showPopup("Balans Yetmir", "Minimum 20 COIN lazımdır", false);
+                return;
+            }
+            
+            const btn = document.getElementById('join-wheel-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gözləyin...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/join_wheel`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({telegram_id: telegramUserId})
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    balance = data.new_balance;
+                    localStorage.setItem('botBalance', balance);
+                    document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+                    
+                    showPopup("Uğurlu!", "Çarxa qoşuldunuz! -20 COIN");
+                    await loadWheelStatus(); // UI yenilə
+                } else {
+                    showPopup("Xəta!", data.message || "Xəta baş verdi", false);
+                    updateWheelUI(wheelData); // Düyməni bərpa et
+                }
+            } catch (error) {
+                console.error("Qoşulma xətası:", error);
+                showPopup("Xəta!", "Serverə bağlanmaq olmur", false);
+                updateWheelUI(wheelData);
+            }
+        }
+
+        function updateTimer() {
+            // Hər bazar günü 12:00
+            const now = new Date();
+            const nextSunday = new Date(now);
+            nextSunday.setDate(now.getDate() + ((7 - now.getDay()) % 7));
+            nextSunday.setHours(12, 0, 0, 0);
+            
+            // Əgər bu gün bazar günüdürsə və saat 12:00 keçibsə, növbəti bazar günü
+            if (now.getDay() === 0 && now.getHours() >= 12) {
+                nextSunday.setDate(nextSunday.getDate() + 7);
+            }
+            
+            const diff = nextSunday - now;
+            
+            if (diff <= 0) {
+                document.getElementById('timer-days').innerText = '00';
+                document.getElementById('timer-hours').innerText = '00';
+                document.getElementById('timer-minutes').innerText = '00';
+                document.getElementById('timer-seconds').innerText = '00';
+                return;
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            document.getElementById('timer-days').innerText = String(days).padStart(2, '0');
+            document.getElementById('timer-hours').innerText = String(hours).padStart(2, '0');
+            document.getElementById('timer-minutes').innerText = String(minutes).padStart(2, '0');
+            document.getElementById('timer-seconds').innerText = String(seconds).padStart(2, '0');
+        }
+
+        // Hər saniyə timer-i yenilə
+        setInterval(updateTimer, 1000);
 
         async function loadLeaderboard() {
     const container = document.getElementById('leaderboard-container');
@@ -1479,7 +1888,7 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
     
     // 3. ÖZÜNÜ ƏLAVƏ ET (əgər qeydiyyatdan keçibsə)
     const myScore = Math.round(balance);
-    const myName = currentUser ? `@${currentUser}` : null;
+    const myName = currentUser ? `${currentUser}` : null;
     
     if (myName && !leaderboardData.some(u => u.name === myName)) {
         leaderboardData.push({
@@ -1509,9 +1918,11 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
         else if (rank === 3) { rankLabel = "🥉"; itemClass = "rank-3"; }
         if (user.isRealMe) itemClass += " rank-me";
         
+        // Avatar + çərçivə ilə
+        const frameClass = user.frame || 'frame-none';
         const avatarHtml = user.avatar 
-            ? `<img src="${user.avatar}" alt="avatar">` 
-            : `<i class="fa-solid fa-user-astronaut" style="font-size: 11px; color: #888;"></i>`;
+            ? `<div class="lb-avatar-circle ${frameClass}"><img src="${user.avatar}" alt="avatar"></div>` 
+            : `<div class="lb-avatar-circle ${frameClass}"><i class="fa-solid fa-user-astronaut" style="font-size: 11px; color: #888;"></i></div>`;
         
         container.innerHTML += `
             <div class="lb-item ${itemClass}">
@@ -1544,6 +1955,88 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             document.querySelectorAll('.popup.show, .modal.show').forEach(el => el.classList.remove('show'));
         }
 
+        // ==================== ÇƏRÇİVƏ MAĞAZASI FUNKSİYASI ====================
+
+        async function handleFrame(frameClass, cost) {
+            if (!telegramUserId) {
+                showPopup("Xəta!", "Telegram istifadəçisi tapılmadı.", false);
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE}/buy_frame`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ telegram_id: telegramUserId, frame_class: frameClass })
+                });
+                const data = await response.json();
+
+                if (data.ok) {
+                    balance = data.new_balance;
+                    ownedFrames = data.owned_frames;
+                    userFrame = data.frame;
+
+                    localStorage.setItem('botBalance', balance);
+                    localStorage.setItem('ownedFrames', JSON.stringify(ownedFrames));
+                    localStorage.setItem('userFrame', userFrame);
+
+                    document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+                    applySavedAvatarAndFrame();
+                    updateFrameShopButtons();
+
+                    showPopup("Uğurlu!", data.already_owned ? "Çərçivə tətbiq olundu." : "Yeni çərçivə alındı və tətbiq edildi.");
+                } else {
+                    showPopup("Xəta!", data.message === "insufficient balance" ? "Kifayət qədər balansınız yoxdur." : "Əməliyyat uğursuz oldu.", false);
+                }
+            } catch (error) {
+                console.error("Çərçivə alışı xətası:", error);
+                showPopup("Xəta!", "Server ilə əlaqə qurula bilmədi.", false);
+            }
+        }
+
+        // Mağaza düymələrini yenilə
+        function updateFrameShopButtons() {
+            const frames = [
+                { id: 'frame-blue', class: 'frame-blue', cost: 20 },
+                { id: 'frame-red', class: 'frame-red', cost: 20 },
+                { id: 'frame-green', class: 'frame-green', cost: 20 },
+                { id: 'frame-yellow', class: 'frame-yellow', cost: 20 },
+                { id: 'frame-gold', class: 'frame-gold', cost: 100 },
+                { id: 'frame-diamond', class: 'frame-diamond', cost: 200 }
+            ];
+            
+            frames.forEach(f => {
+                const btn = document.getElementById('btn-' + f.class);
+                if (!btn) return;
+                
+                if (ownedFrames.includes(f.class)) {
+                    // Alınıbsa → Tətbiq et
+                    if (userFrame === f.class) {
+                        btn.innerText = '✓ Tətbiq edilib';
+                        btn.disabled = true;
+                        btn.style.background = '#2ecc71';
+                        btn.style.color = '#fff';
+                    } else {
+                        btn.innerText = 'Tətbiq et';
+                        btn.disabled = false;
+                        btn.style.background = '';
+                        btn.style.color = '';
+                    }
+                } else {
+                    // Alınmayıbsa → Qiymət göstər
+                    btn.innerText = f.cost + ' COIN';
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        function openProfileMenu() {
+            document.getElementById('profile-menu-modal').classList.add('show');
+        }
+
+        function openInfoModal() {
+            document.getElementById('info-modal').classList.add('show');
+        }
+
         function applySavedAvatarAndFrame() {
             const avatarWrapper = document.getElementById('user-avatar');
             const avatarImg = document.getElementById('avatar-img');
@@ -1569,8 +2062,9 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
         }
 
         function openFrameShop() {
-            const modal = document.getElementById('frame-shop-modal');
-            if (modal) modal.classList.add('show');
+            closeModals();
+            updateFrameShopButtons(); // Düymələri yenilə
+            document.getElementById('frame-shop-modal').classList.add('show');
         }
 
         function changePicture() {
@@ -1750,29 +2244,67 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
         }
 
         // ==================== ÇƏKİM TƏLƏBİ ====================
-        function requestWithdraw() {
+        async function requestWithdraw() {
             const cardNum = document.getElementById('card-input').value.trim();
             const amountInput = document.getElementById('withdraw-amount');
             const requestedAmount = parseFloat(amountInput ? amountInput.value : '');
-            const isValidCard = /^\d{16}$/.test(cardNum) || /^TRC20:/i.test(cardNum) || /^0x[a-fA-F0-9]{20,}$/.test(cardNum);
+
             if (cardNum === "") { showPopup("Xəta!", "Zəhmət olmasa kart daxil edin.", false); return; }
-            if (!isValidCard) { showPopup("Xəta!", "Kart nömrəsi düzgün yazılmayıb. 16 rəqəmli kart və ya TRC20/0x adresi daxil edin.", false); return; }
             if (!requestedAmount || isNaN(requestedAmount)) { showPopup("Xəta!", "Çəkmək istədiyiniz məbləği daxil edin.", false); return; }
-            if (requestedAmount < 12500) { showPopup("Limit Çatmadı!", "Minimum pul çıxarma limiti 12,500 COIN-dir.", false); return; }
-            if (requestedAmount > balance) { showPopup("Limit Çatmadı!", "Daxil etdiyiniz məbləğ mövcud balansdan yüksəkdir.", false); return; }
-            if (tg) {
-                const withdrawData = { action: "withdraw_request", username: currentUser, card: cardNum, coins: requestedAmount.toFixed(2), usd: (requestedAmount / 12500).toFixed(2) };
-                tg.sendData(JSON.stringify(withdrawData));
-                showPopup("Uğurlu!", "Çəkim tələbiniz bota göndərildi!");
-            } else { showPopup("Sorğu Göndərildi!", `${requestedAmount.toFixed(2)} COIN üçün çıxarış yoxlanılır.`); }
-            balance -= requestedAmount;
-            localStorage.setItem('botBalance', balance);
-            syncBalanceToBackend(-requestedAmount, "add");
-            document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+            if (!telegramUserId) { showPopup("Xəta!", "Telegram istifadəçisi tapılmadı.", false); return; }
+
+            try {
+                const response = await fetch(`${API_BASE}/request_withdraw`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ telegram_id: telegramUserId, card: cardNum, amount: requestedAmount })
+                });
+                const data = await response.json();
+
+                if (data.ok) {
+                    balance = data.new_balance;
+                    localStorage.setItem('botBalance', balance);
+                    document.getElementById('balance-display').innerText = balance.toFixed(2) + " COIN";
+                    showPopup("Uğurlu!", "Çəkim tələbiniz qəbul edildi!");
+                } else {
+                    const messages = {
+                        "invalid card": "Kart nömrəsi düzgün yazılmayıb. 16 rəqəmli kart və ya TRC20/0x adresi daxil edin.",
+                        "below minimum limit": "Minimum pul çıxarma limiti 12,500 COIN-dir.",
+                        "insufficient balance": "Daxil etdiyiniz məbləğ mövcud balansdan yüksəkdir.",
+                        "register first": "Əvvəlcə qeydiyyatdan keçməlisiniz."
+                    };
+                    showPopup("Xəta!", messages[data.message] || "Əməliyyat uğursuz oldu.", false);
+                }
+            } catch (error) {
+                console.error("Çəkim xətası:", error);
+                showPopup("Xəta!", "Server ilə əlaqə qurula bilmədi.", false);
+            }
         }
 
-        // ==================== BAŞLANĞIC ====================
         window.addEventListener('DOMContentLoaded', async () => {
+            // ============================================
+            // 1. URL PARAMETRLƏRİNİ TƏMİZLƏ (YENİ HİSSƏ)
+            // ============================================
+            const url = new URL(window.location.href);
+            const userId = url.searchParams.get('user_id');
+            const refCode = url.searchParams.get('ref');
+            
+            // Yalnız user_id və ref saxla, qalan hər şeyi sil
+            let cleanUrl = window.location.pathname;
+            const params = new URLSearchParams();
+            if (userId) params.set('user_id', userId);
+            if (refCode) params.set('ref', refCode);
+            
+            if (params.toString()) {
+                cleanUrl += '?' + params.toString();
+            }
+            
+            // Tarixçəni təmizlə (səhifə yenilənmədən)
+            window.history.replaceState({}, '', cleanUrl);
+            
+            // ============================================
+            // 2. NORMAL YÜKLƏMƏ (KÖHNƏ HİSSƏ)
+            // ============================================
             loadFromLocalStorage();
             await loadUserFromBackend();
             generateReferralLink();
@@ -1780,5 +2312,30 @@ Hər Bazar ertəsi saat 12:00-da avtomatik qalib seçimi olur.</p>
             displayMyReferrals();
         });
     </script>
+    <div id="info-modal" class="modal" onclick="if(event.target === this) closeModals()">
+    <div class="modal-content" style="padding: 25px 20px;" onclick="event.stopPropagation()">
+        <h3 style="color:#d4af37; font-size: 16px; margin-bottom: 20px;">
+            <i class="fa-solid fa-headset"></i> Dəstək və Yeniliklər
+        </h3>
+        
+        <p style="color:#aaa; font-size: 11px; margin-bottom: 8px; text-align: left;">
+            Şikayət və təkliflər üçün:
+        </p>
+        <button class="premium-btn btn-gold" style="width:100%; padding:12px; margin-bottom: 15px;" 
+                onclick="window.open('https://t.me/adcrashchat', '_blank')">
+            <i class="fa-brands fa-telegram"></i> Qrupa yaz
+        </button>
+        
+        <p style="color:#aaa; font-size: 11px; margin-bottom: 8px; text-align: left;">
+            Yeniliklərdən xəbərdar olmaq üçün:
+        </p>
+        <button class="premium-btn btn-outline" style="width:100%; padding:12px; margin-bottom: 15px;" 
+                onclick="window.open('https://t.me/adcrashofficial', '_blank')">
+            <i class="fa-solid fa-bell"></i> Qrupa qoşul
+        </button>
+        
+        <!-- BAĞLA DÜYMƏSİ SİLİNDİ -->
+    </div>
+    </div>
 </body>
 </html>
