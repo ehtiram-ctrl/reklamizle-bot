@@ -797,7 +797,6 @@ async def start_web_server():
     app.router.add_post("/join_wheel", join_wheel)
     app.router.add_options("/join_wheel", join_wheel)
     app.router.add_get("/wheel_status", get_wheel_status)
-    app.router.add_get("/wheel_status", get_wheel_status)
     app.router.add_post("/claim_ad_reward", claim_ad_reward)
     app.router.add_options("/claim_ad_reward", claim_ad_reward)
     app.router.add_get("/", handle)
