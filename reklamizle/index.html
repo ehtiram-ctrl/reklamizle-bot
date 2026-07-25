@@ -1618,11 +1618,11 @@
 
         // ==================== TARİX VƏ LIMIT FUNKSİYALARI ====================
         function checkDateReset() {
-            const today = new Date().toLocaleDateString();
-            if (dailyLimits.lastDate !== today) {
+            const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD formatı, server ilə eyni
+            if (dailyLimits.last_date !== today) {
                 dailyLimits.ad1 = 50;
                 dailyLimits.ad2 = 50;
-                dailyLimits.lastDate = today;
+                dailyLimits.last_date = today;
                 localStorage.setItem('dailyLimits', JSON.stringify(dailyLimits));
             }
         }
