@@ -2156,13 +2156,14 @@
         // ==================== REFERAL SİSTEMİ ====================
         const REQUIRED_ADS = 10;
         const REFERRAL_BONUS_AMOUNT = 100;
-        const myUserId = localStorage.getItem('my_user_id') || "user_" + Math.floor(1000 + Math.random() * 9000);
-        localStorage.setItem('my_user_id', myUserId);
+        const myUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || telegramId;
 
-        function generateReferralLink() {
-            const refDiv = document.getElementById('ref-link');
-            if (refDiv) { const currentUrl = window.location.href.split('?')[0]; refDiv.innerText = `${currentUrl}?ref=${myUserId}`; }
-        }
+function generateReferralLink() {
+    const refDiv = document.getElementById('ref-link');
+    if (refDiv) { 
+        refDiv.innerText = `https://t.me/ADCrashBot?start=ref_${myUserId}`; 
+    }
+}
 
         function copyInviteLink() {
             const refDiv = document.getElementById('ref-link');
