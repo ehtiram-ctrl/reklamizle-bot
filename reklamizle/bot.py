@@ -462,7 +462,7 @@ async def join_wheel(request):
     return cors_json_response({"ok": True, "new_balance": round(new_balance, 2)})
 
 async def claim_ad_reward(request):
-    """Reklam mükafatını TAMAMILƏ server tərəfdə hesablayır (client-ə güvənmir)"""
+    """Reklam mükafatını hesablayır və referal bonusunu idarə edir"""
     if request.method == "OPTIONS":
         return cors_json_response({"ok": True})
 
@@ -498,17 +498,63 @@ async def claim_ad_reward(request):
     reward = round(random.uniform(5.00, 6.00), 2)
     limits[limit_key] -= 1
     new_balance = round(user.get("coins", 0.0) + reward, 2)
+    
+    # İstifadəçinin baxdığı reklam sayını 1 artırırıq
+    watched_ads = user.get("watched_ads", 0) + 1
 
+    # Baza məlumatlarını yeniləyirik
     users_col.update_one(
         {"telegram_id": telegram_id},
-        {"$set": {"coins": new_balance, "daily_limits": limits}}
+        {"$set": {
+            "coins": new_balance, 
+            "daily_limits": limits,
+            "watched_ads": watched_ads
+        }}
     )
+
+    # === REFERAL BONUSU MƏNTİQİ ===
+    invited_by_id = user.get("invited_by")
+    
+    # Əgər istifadəçi 10-cu reklamını izlədisə və onu dəvət edən biri varsa:
+    if watched_ads == 10 and invited_by_id:
+        try:
+            inviter_id = int(invited_by_id)
+            inviter = users_col.find_one({"telegram_id": inviter_id})
+            
+            if inviter:
+                # Dəvət edən şəxsə 100 COIN bonus veririk
+                inviter_new_balance = round(inviter.get("coins", 0.0) + 100.0, 2)
+                inviter_referrals = inviter.get("referrals", [])
+                
+                if telegram_id not in inviter_referrals:
+                    inviter_referrals.append(telegram_id)
+
+                # Dəvət edənin balansını bazada yeniləyirik
+                users_col.update_one(
+                    {"telegram_id": inviter_id},
+                    {"$set": {
+                        "coins": inviter_new_balance,
+                        "referrals": inviter_referrals
+                    }}
+                )
+                
+                # Dəvət edən şəxsə Telegram-dan mesaj göndəririk
+                try:
+                    await bot.send_message(
+                        chat_id=inviter_id,
+                        text="🎉 Dəvət etdiyiniz istifadəçi 10 reklam izlədi! Balansınıza +100 COIN əlavə olundu."
+                    )
+                except Exception:
+                    pass
+        except Exception as e:
+            logging.error(f"Referral bonus error: {e}")
 
     return cors_json_response({
         "ok": True,
         "reward": reward,
         "new_balance": new_balance,
-        "daily_limits": limits
+        "daily_limits": limits,
+        "watched_ads": watched_ads
     })
 
 async def buy_frame(request):
