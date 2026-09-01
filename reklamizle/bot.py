@@ -14,6 +14,10 @@ import random
 from datetime import datetime, timedelta
 import asyncio
 
+# Gündəlik giriş bonusu cədvəlləri
+DAILY_REGULAR_REWARDS = [1, 5, 12, 18, 30, 45, 60]
+DAILY_AD_REWARDS = [5, 10, 25, 35, 55, 80, 100]
+
 # 1. LOGGING QURULUŞU
 logging.basicConfig(level=logging.INFO)
 
@@ -861,6 +865,8 @@ async def start_web_server():
     app.router.add_options("/register_user", register_user)
     app.router.add_get("/leaderboard", get_leaderboard)
     app.router.add_get("/get_leaderboard", get_leaderboard)
+    app.router.add_post('/api/daily_status', daily_status_handler)
+    app.router.add_post('/api/claim_daily', claim_daily_handler)
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -885,7 +891,94 @@ async def main():
     
     asyncio.create_task(wheel_scheduler())
     await dp.start_polling(bot, skip_updates=True)
+async def daily_status_handler(request):
+    try:
+        data = await request.json()
+        raw_id = data.get("user_id")
+        user_id = int(raw_id) if str(raw_id).isdigit() else raw_id
+        
+        user = db.users.find_one({"user_id": user_id})
+        if not user:
+            return web.json_response({"success": False, "error": "İstifadəçi tapılmadı"}, status=404)
+            
+        today_str = datetime.utcnow().strftime('%Y-%m-%d')
+        last_checkin_str = user.get("last_checkin_date", "")
+        streak = user.get("checkin_streak", 0)
+        
+        if last_checkin_str:
+            last_date = datetime.strptime(last_checkin_str, '%Y-%m-%d')
+            today_date = datetime.strptime(today_str, '%Y-%m-%d')
+            if (today_date - last_date).days > 1:
+                streak = 0
+        
+        already_claimed = (last_checkin_str == today_str)
+        if streak >= 7 and not already_claimed:
+            streak = 0
+            
+        next_streak = streak + 1 if not already_claimed else streak
+        if next_streak > 7:
+            next_streak = 7
+            
+        return web.json_response({
+            "success": True,
+            "already_claimed": already_claimed,
+            "current_streak": next_streak,
+            "regular_reward": DAILY_REGULAR_REWARDS[next_streak - 1],
+            "ad_reward": DAILY_AD_REWARDS[next_streak - 1]
+        })
+    except Exception as e:
+        return web.json_response({"success": False, "error": str(e)}, status=500)
 
+async def claim_daily_handler(request):
+    try:
+        data = await request.json()
+        raw_id = data.get("user_id")
+        user_id = int(raw_id) if str(raw_id).isdigit() else raw_id
+        watched_ad = data.get("watched_ad", False)
+
+        user = db.users.find_one({"user_id": user_id})
+        if not user:
+            return web.json_response({"success": False, "error": "İstifadəçi tapılmadı"}, status=404)
+
+        today_str = datetime.utcnow().strftime('%Y-%m-%d')
+        last_checkin_str = user.get("last_checkin_date", "")
+        streak = user.get("checkin_streak", 0)
+
+        if last_checkin_str == today_str:
+            return web.json_response({"success": False, "error": "Bu günün bonusunu artıq almısınız!"}, status=400)
+
+        if last_checkin_str:
+            last_date = datetime.strptime(last_checkin_str, '%Y-%m-%d')
+            today_date = datetime.strptime(today_str, '%Y-%m-%d')
+            diff = (today_date - last_date).days
+            streak = streak + 1 if diff == 1 else 1
+        else:
+            streak = 1
+
+        if streak > 7:
+            streak = 1
+
+        index = streak - 1
+        reward_amount = DAILY_AD_REWARDS[index] if watched_ad else DAILY_REGULAR_REWARDS[index]
+        new_balance = round(user.get("coins", 0.0) + reward_amount, 2)
+
+        db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {
+                "coins": new_balance,
+                "last_checkin_date": today_str,
+                "checkin_streak": streak
+            }}
+        )
+
+        return web.json_response({
+            "success": True,
+            "reward": reward_amount,
+            "new_balance": new_balance,
+            "message": f"Təbriklər! {streak}-ci gün bonusu olaraq {reward_amount} COIN qazandınız."
+        })
+    except Exception as e:
+        return web.json_response({"success": False, "error": str(e)}, status=500)
 
 if __name__ == '__main__':
     asyncio.run(main())
