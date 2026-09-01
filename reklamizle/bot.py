@@ -495,7 +495,7 @@ async def claim_ad_reward(request):
     if limits.get(limit_key, 0) <= 0:
         return cors_json_response({"ok": False, "message": "limit finished"})
 
-    reward = round(random.uniform(5.00, 6.00), 2)
+    reward = round(random.uniform(3.00, 4.00), 2)
     limits[limit_key] -= 1
     new_balance = round(user.get("coins", 0.0) + reward, 2)
     
@@ -522,8 +522,8 @@ async def claim_ad_reward(request):
             inviter = users_col.find_one({"telegram_id": inviter_id})
             
             if inviter:
-                # Dəvət edən şəxsə 100 COIN bonus veririk
-                inviter_new_balance = round(inviter.get("coins", 0.0) + 100.0, 2)
+                # Dəvət edən şəxsə 30 COIN bonus veririk
+                inviter_new_balance = round(inviter.get("coins", 0.0) + 30.0, 2)
                 inviter_referrals = inviter.get("referrals", [])
                 
                 if telegram_id not in inviter_referrals:
@@ -542,7 +542,7 @@ async def claim_ad_reward(request):
                 try:
                     await bot.send_message(
                         chat_id=inviter_id,
-                        text="🎉 Dəvət etdiyiniz istifadəçi 10 reklam izlədi! Balansınıza +100 COIN əlavə olundu."
+                        text="🎉 Dəvət etdiyiniz istifadəçi 10 reklam izlədi! Balansınıza +30 COIN əlavə olundu."
                     )
                 except Exception:
                     pass
@@ -653,7 +653,7 @@ async def request_withdraw(request):
     if not is_valid_card:
         return cors_json_response({"ok": False, "message": "invalid card"})
 
-    if amount < 12500:
+    if amount < 15500:
         return cors_json_response({"ok": False, "message": "below minimum limit"})
 
     user = users_col.find_one({"telegram_id": telegram_id})
@@ -675,7 +675,7 @@ async def request_withdraw(request):
         "username": user.get("registered_username"),
         "card": card,
         "coins": amount,
-        "usd": round(amount / 12500, 2),
+        "usd": round(amount / 15500, 2),
         "status": "pending",
         "created_at": datetime.now()
     })
@@ -683,7 +683,7 @@ async def request_withdraw(request):
     try:
         await bot.send_message(
             chat_id=telegram_id,
-            text=f"✅ Çəkim tələbiniz qəbul edildi: {amount:.2f} COIN ({round(amount/12500, 2)}$). Tezliklə baxılacaq."
+            text=f"✅ Çəkim tələbiniz qəbul edildi: {amount:.2f} COIN ({round(amount/15500, 2)}$). Tezliklə baxılacaq."
         )
     except:
         pass
@@ -696,7 +696,7 @@ async def request_withdraw(request):
                 f"İstifadəçi: {user.get('registered_username')}\n"
                 f"Telegram ID: {telegram_id}\n"
                 f"Kart/Ünvan: {card}\n"
-                f"Məbləğ: {amount:.2f} COIN ({round(amount/12500, 2)}$)\n"
+                f"Məbləğ: {amount:.2f} COIN ({round(amount/15500, 2)}$)\n"
                 f"Qalan balans: {new_balance:.2f} COIN"
             )
         )
