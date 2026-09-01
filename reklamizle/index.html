@@ -1147,6 +1147,7 @@
             <button class="nav-item" onclick="switchPage('wheel', this); loadWheelStatus();"><i class="fa-solid fa-arrows-rotate"></i><span data-translate="navWheel">Çarx</span></button>
             <button class="nav-item" onclick="switchPage('referral', this)"><i class="fa-solid fa-rocket"></i><span data-translate="navBonus">Bonus</span></button>
             <button class="nav-item" id="nav-account" onclick="switchPage('account', this)"><i class="fa-solid fa-user"></i><span data-translate="navAccount">Hesab</span></button>
+            <button onclick="openDailyModal()" class="btn btn-primary" style="margin-top: 10px;">📅 Gündəlik Bonus</button>
         </nav>
 
     </div>
@@ -2312,6 +2313,87 @@ function generateReferralLink() {
             checkIncomingReferral();
             displayMyReferrals();
         });
+
+        let currentDailyStatus = null;
+
+        async function checkDailyStatus() {
+        try {
+            const res = await fetch('/api/daily_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: telegramUser.id })
+            });
+            const data = await res.json();
+            if (data.success) {
+            currentDailyStatus = data;
+            document.getElementById('regAmount').innerText = data.regular_reward;
+            document.getElementById('adAmount').innerText = data.ad_reward;
+            document.getElementById('dailyStreakText').innerText = `${data.current_streak}-ci Gün Mükafatı`;
+            
+            if (data.already_claimed) {
+                document.getElementById('claimRegularBtn').disabled = true;
+                document.getElementById('claimAdBtn').disabled = true;
+                document.getElementById('dailyStreakText').innerText += " (Bu gün alınıb)";
+            } else {
+                document.getElementById('claimRegularBtn').disabled = false;
+                document.getElementById('claimAdBtn').disabled = false;
+            }
+            }
+        } catch (err) {
+            console.error("Gündəlik status xətası:", err);
+        }
+        }
+
+        function claimDailyReward(withAd) {
+        if (withAd) {
+            if (typeof show_8984923 === 'function') {
+            show_8984923().then(() => {
+                sendClaimRequest(true);
+            }).catch(() => {
+                alert("Video reklam tam izlənilmədi!");
+            });
+            } else {
+            sendClaimRequest(true);
+            }
+        } else {
+            sendClaimRequest(false);
+        }
+        }
+
+        async function sendClaimRequest(watchedAd) {
+        try {
+            const res = await fetch('/api/claim_daily', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: telegramUser.id,
+                watched_ad: watchedAd
+            })
+            });
+            const data = await res.json();
+            if (data.success) {
+            alert(data.message);
+            if (document.getElementById('userBalance')) {
+                document.getElementById('userBalance').innerText = data.new_balance;
+            }
+            closeDailyModal();
+            } else {
+            alert(data.error || "Xəta baş verdi");
+            }
+        } catch (err) {
+            alert("Şəbəkə xətası baş verdi.");
+        }
+        }
+
+        function openDailyModal() {
+        document.getElementById('dailyModal').style.display = 'flex';
+        checkDailyStatus();
+        }
+
+        function closeDailyModal() {
+        document.getElementById('dailyModal').style.display = 'none';
+        }
+
     </script>
     <div id="info-modal" class="modal" onclick="if(event.target === this) closeModals()">
     <div class="modal-content" style="padding: 25px 20px;" onclick="event.stopPropagation()">
@@ -2338,5 +2420,24 @@ function generateReferralLink() {
         <!-- BAĞLA DÜYMƏSİ SİLİNDİ -->
     </div>
     </div>
+
+    <!-- Gündəlik Bonus Modalı -->
+    <div id="dailyModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h3>📅 Gündəlik Bonus</h3>
+        <p id="dailyStreakText">Bu gün 1-ci gündür</p>
+        
+        <div class="daily-actions" style="margin-top: 15px;">
+        <button id="claimRegularBtn" onclick="claimDailyReward(false)" class="btn">
+            Adi Bonus (<span id="regAmount">1</span> COIN)
+        </button>
+        <button id="claimAdBtn" onclick="claimDailyReward(true)" class="btn btn-gold" style="margin-top: 10px;">
+            🎬 Video İzlə (<span id="adAmount">5</span> COIN)
+        </button>
+        </div>
+        <button onclick="closeDailyModal()" class="btn-close" style="margin-top: 15px;">Bağla</button>
+    </div>
+    </div>
+
 </body>
 </html>
