@@ -485,17 +485,21 @@
 
         /* Alt menyudan açılan modal */
         .modal {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 101;
-            opacity: 0;
-            transition: opacity 0.3s;
+            z-index: 9999;
         }
-        .modal.show { display: flex; opacity: 1; }
+
+        .modal.show {
+            display: flex !important;
+        }
         .modal-content {
             background: #14110b;
             border: 1px solid #d4af37;
@@ -938,6 +942,7 @@
                         <div id="limit-bar-2" class="limit-bar-fill" style="width:100%;"></div>
                     </div>
                 </div>
+            <button onclick="openDailyModal()" class="btn btn-primary" style="margin-top: 10px;">📅 Gündəlik Bonus</button>
             </div>
 
             <div id="page-leaderboard" class="page" style="justify-content: flex-start;">
@@ -1147,7 +1152,6 @@
             <button class="nav-item" onclick="switchPage('wheel', this); loadWheelStatus();"><i class="fa-solid fa-arrows-rotate"></i><span data-translate="navWheel">Çarx</span></button>
             <button class="nav-item" onclick="switchPage('referral', this)"><i class="fa-solid fa-rocket"></i><span data-translate="navBonus">Bonus</span></button>
             <button class="nav-item" id="nav-account" onclick="switchPage('account', this)"><i class="fa-solid fa-user"></i><span data-translate="navAccount">Hesab</span></button>
-            <button onclick="openDailyModal()" class="btn btn-primary" style="margin-top: 10px;">📅 Gündəlik Bonus</button>
         </nav>
 
     </div>
@@ -2386,12 +2390,12 @@ function generateReferralLink() {
         }
 
         function openDailyModal() {
-        document.getElementById('dailyModal').style.display = 'flex';
-        checkDailyStatus();
+            document.getElementById('dailyModal').classList.add('show');
+            checkDailyStatus();
         }
 
         function closeDailyModal() {
-        document.getElementById('dailyModal').style.display = 'none';
+            document.getElementById('dailyModal').classList.remove('show');
         }
 
     </script>
