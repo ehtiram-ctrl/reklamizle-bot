@@ -2333,86 +2333,75 @@ function generateReferralLink() {
             return null;
         }
 
-    async function checkDailyStatus() {
-        const userId = getTgUserId();
-        if (!userId) {
-            console.error("Telegram User ID tapılmadı!");
-            return;
-        }
+    // Render backend serverinizin domen ünvanı
+const RENDER_URL = "https://adcrash-bot.onrender.com"; // <-- Buraya öz Render ünvanınızı yazın
 
-        try {
-            const res = await fetch('/api/daily_status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
-            });
-            const data = await res.json();
-            if (data.success) {
-            currentDailyStatus = data;
-            document.getElementById('regAmount').innerText = data.regular_reward;
-            document.getElementById('adAmount').innerText = data.ad_reward;
-            document.getElementById('dailyStreakText').innerText = `${data.current_streak}-ci Gün Mükafatı`;
-            
-            if (data.already_claimed) {
-                document.getElementById('claimRegularBtn').disabled = true;
-                document.getElementById('claimAdBtn').disabled = true;
-                document.getElementById('dailyStreakText').innerText += " (Bu gün alınıb)";
-            } else {
-                document.getElementById('claimRegularBtn').disabled = false;
-                document.getElementById('claimAdBtn').disabled = false;
-            }
-            }
-        } catch (err) {
-            console.error("Gündəlik status xətası:", err);
-        }
-        }
+async function checkDailyStatus() {
+  const userId = getTgUserId();
+  if (!userId) {
+    console.error("Telegram User ID tapılmadı!");
+    return;
+  }
 
-        function claimDailyReward(withAd) {
-        if (withAd) {
-            if (typeof show_8984923 === 'function') {
-            show_8984923().then(() => {
-                sendClaimRequest(true);
-            }).catch(() => {
-                alert("Video reklam tam izlənilmədi!");
-            });
-            } else {
-            sendClaimRequest(true);
-            }
-        } else {
-            sendClaimRequest(false);
-        }
-        }
-
-        async function sendClaimRequest(watchedAd) {
-        const userId = getTgUserId();
-        if (!userId) {
-            alert("Telegram istifadəçi məlumatı tapılmadı!");
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/claim_daily', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_id: userId,
-                watched_ad: watchedAd
-            })
-            });
-            const data = await res.json();
-            if (data.success) {
-            alert(data.message);
-            if (document.getElementById('userBalance')) {
-                document.getElementById('userBalance').innerText = data.new_balance;
-            }
-            closeDailyModal();
-            } else {
-            alert(data.error || "Xəta baş verdi");
-            }
-        } catch (err) {
-            alert("Şəbəkə xətası baş verdi.");
-        }
+  try {
+    const res = await fetch(`${RENDER_URL}/api/daily_status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentDailyStatus = data;
+      document.getElementById('regAmount').innerText = data.regular_reward;
+      document.getElementById('adAmount').innerText = data.ad_reward;
+      document.getElementById('dailyStreakText').innerText = `${data.current_streak}-ci Gün Mükafatı`;
+      
+      if (data.already_claimed) {
+        document.getElementById('claimRegularBtn').disabled = true;
+        document.getElementById('claimAdBtn').disabled = true;
+        document.getElementById('dailyStreakText').innerText += " (Bu gün alınıb)";
+      } else {
+        document.getElementById('claimRegularBtn').disabled = false;
+        document.getElementById('claimAdBtn').disabled = false;
+      }
     }
+  } catch (err) {
+    console.error("Gündəlik status xətası:", err);
+  }
+}
+
+async function sendClaimRequest(watchedAd) {
+  const userId = getTgUserId();
+  if (!userId) {
+    alert("Telegram istifadəçi məlumatı tapılmadı!");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${RENDER_URL}/api/claim_daily`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        watched_ad: watchedAd
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(data.message);
+      if (document.getElementById('userBalance')) {
+        document.getElementById('userBalance').innerText = data.new_balance;
+      }
+      closeDailyModal();
+    } else {
+      alert(data.error || "Xəta baş verdi");
+    }
+  } catch (err) {
+    alert("Şəbəkə xətası baş verdi.");
+  }
+}
+
+
         function openDailyModal() {
             document.getElementById('dailyModal').classList.add('show');
             checkDailyStatus();
