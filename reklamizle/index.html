@@ -2320,12 +2320,31 @@ function generateReferralLink() {
 
         let currentDailyStatus = null;
 
-        async function checkDailyStatus() {
+        function getTgUserId() {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                return window.Telegram.WebApp.initDataUnsafe.user.id;
+            }
+            if (typeof telegramId !== 'undefined') {
+                return telegramId;
+            }
+            if (typeof telegramUser !== 'undefined' && telegramUser.id) {
+                return telegramUser.id;
+            }
+            return null;
+        }
+
+    async function checkDailyStatus() {
+        const userId = getTgUserId();
+        if (!userId) {
+            console.error("Telegram User ID tapılmadı!");
+            return;
+        }
+
         try {
             const res = await fetch('/api/daily_status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: telegramUser.id })
+            body: JSON.stringify({ user_id: userId })
             });
             const data = await res.json();
             if (data.success) {
@@ -2365,12 +2384,18 @@ function generateReferralLink() {
         }
 
         async function sendClaimRequest(watchedAd) {
+        const userId = getTgUserId();
+        if (!userId) {
+            alert("Telegram istifadəçi məlumatı tapılmadı!");
+            return;
+        }
+
         try {
             const res = await fetch('/api/claim_daily', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                user_id: telegramUser.id,
+                user_id: userId,
                 watched_ad: watchedAd
             })
             });
@@ -2387,8 +2412,7 @@ function generateReferralLink() {
         } catch (err) {
             alert("Şəbəkə xətası baş verdi.");
         }
-        }
-
+    }
         function openDailyModal() {
             document.getElementById('dailyModal').classList.add('show');
             checkDailyStatus();
