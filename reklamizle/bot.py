@@ -865,8 +865,11 @@ async def start_web_server():
     app.router.add_options("/register_user", register_user)
     app.router.add_get("/leaderboard", get_leaderboard)
     app.router.add_get("/get_leaderboard", get_leaderboard)
-    app.router.add_post('/api/daily_status', daily_status_handler)
-    app.router.add_post('/api/claim_daily', claim_daily_handler)
+    # Gündəlik bonus marşrutları və OPTIONS (CORS) icazələri
+    app.router.add_post("/api/daily_status", daily_status_handler)
+    app.router.add_options("/api/daily_status", daily_status_handler)
+    app.router.add_post("/api/claim_daily", claim_daily_handler)
+    app.router.add_options("/api/claim_daily", claim_daily_handler)
 
     runner = web.AppRunner(app)
     await runner.setup()
