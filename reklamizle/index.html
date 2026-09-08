@@ -2196,31 +2196,56 @@ function generateReferralLink() {
             }
         }
 
-        function displayMyReferrals() {
+        async function displayMyReferrals() {
             const listContainer = document.getElementById('referrals-list');
             if (!listContainer) return;
-            let referrals = JSON.parse(localStorage.getItem(`referrals_of_${myUserId}`)) || [];
-            const t = translations[currentLang] || translations.az;
-            if (referrals.length === 0) {
-                listContainer.innerHTML = `<p style="color: #aaa; font-size: 11px; text-align: center; margin: 0;">${t.noReferrals || 'Hələ ki dəvət olunan dost yoxdur.'}</p>`;
+            
+            const userId = getTgUserId();
+            if (!userId) {
+                listContainer.innerHTML = "<p style='color: #aaa; font-size: 11px; text-align: center; margin: 0;'>İstifadəçi ID tapılmadı.</p>";
                 return;
             }
-            listContainer.innerHTML = "";
-            referrals.forEach((friend, index) => {
-                let statusText = ""; let statusColor = "#e67e22";
-                if (friend.adsWatched >= REQUIRED_ADS) { statusText = t.referralComplete || "🎉 Tamamlandı (+100 Xal)"; statusColor = "#2ecc71"; }
-                else { statusText = (t.referralProgress || "Gedişat: {count} / {required} Reklam").replace('{count}', friend.adsWatched).replace('{required}', REQUIRED_ADS); }
-                listContainer.innerHTML += `
-                    <div class="ref-progress-container" style="margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px; width: 100%;">
-                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
-                            <span style="color: #aaa;">${(t.referralFriendLabel || 'Dost #{index}').replace('{index}', index + 1)}</span>
-                            <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
-                        </div>
-                        <div class="progress-bar-bg" style="background: #222; border-radius: 4px; height: 6px; overflow: hidden; width: 100%;">
-                            <div class="progress-bar-fill" style="background: ${statusColor}; width: ${(friend.adsWatched / REQUIRED_ADS) * 100}%; height: 100%; transition: width 0.3s ease;"></div>
-                        </div>
-                    </div>`;
-            });
+
+            try {
+                const response = await fetch(`${API_BASE}/get_referrals`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                
+                const data = await response.json();
+                const t = translations[currentLang] || translations.az;
+
+                if (data.success && data.referrals && data.referrals.length > 0) {
+                    listContainer.innerHTML = "";
+                    data.referrals.forEach((friend, index) => {
+                        let statusText = ""; let statusColor = "#e67e22";
+                        if (friend.completed) { 
+                            statusText = t.referralComplete || "🎉 Tamamlandı (+100 Xal)"; 
+                            statusColor = "#2ecc71"; 
+                        } else { 
+                            let progressText = t.referralProgress || "Gedişat: {count} / {required} Reklam";
+                            statusText = progressText.replace('{count}', friend.ads_watched).replace('{required}', REQUIRED_ADS); 
+                        }
+                        
+                        listContainer.innerHTML += `
+                            <div class="ref-progress-container" style="margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px; width: 100%;">
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
+                                    <span style="color: #aaa;">👤 ${friend.first_name}</span>
+                                    <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
+                                </div>
+                                <div class="progress-bar-bg" style="background: #222; border-radius: 4px; height: 6px; overflow: hidden; width: 100%;">
+                                    <div class="progress-bar-fill" style="background: ${statusColor}; width: ${(friend.ads_watched / REQUIRED_ADS) * 100}%; height: 100%; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>`;
+                    });
+                } else {
+                    listContainer.innerHTML = `<p style="color: #aaa; font-size: 11px; text-align: center; margin: 0;">${t.noReferrals || 'Hələ ki dəvət olunan dost yoxdur.'}</p>`;
+                }
+            } catch (e) {
+                console.error("Referral yüklənərkən xəta:", e);
+                listContainer.innerHTML = "<p style='color: #aaa; font-size: 11px; text-align: center; margin: 0;'>Bağlantı xətası yarandı.</p>";
+            }
         }
 
         function openShareOptions() { document.getElementById('share-popup').classList.add('show'); }
