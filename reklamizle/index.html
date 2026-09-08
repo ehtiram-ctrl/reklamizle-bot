@@ -2368,19 +2368,23 @@ function generateReferralLink() {
         }
 
         function claimDailyReward(withAd) {
-          if (withAd) {
-            if (typeof show_8984923 === 'function') {
-              show_8984923().then(() => {
-                sendClaimRequest(true);
-              }).catch(() => {
-                alert("Video reklam tam izlənilmədi!");
-              });
+            if (withAd) {
+                // Monetag Rewarded Interstitial reklamını çağırırıq
+                if (typeof show_11751436 === 'function') {
+                    show_11751436().then(() => {
+                    // Reklam uğurla sona qədər izlənildi
+                    sendClaimRequest(true);
+                }).catch((e) => {
+                        console.error("Reklam xətası:", e);
+                        alert("Video reklamı tam izləmədiyiniz üçün 5 COIN verilmədi!");
+                    });
+                } else {
+                    alert("Reklam yüklənir, xahiş olunur bir neçə saniyə sonra yenidən cəhd edin.");
+                }
             } else {
-              sendClaimRequest(true);
+                // Adi (reklamsız) 1 COIN bonus
+                sendClaimRequest(false);
             }
-          } else {
-            sendClaimRequest(false);
-          }
         }
 
         async function sendClaimRequest(watchedAd) {
@@ -2465,6 +2469,9 @@ function generateReferralLink() {
         <button onclick="closeDailyModal()" class="btn-close" style="margin-top: 15px;">Kapat</button>
     </div>
     </div>
+
+<!-- Monetag SDK -->
+<script src='//libtl.com/sdk.js' data-zone='11751436' data-sdk='show_11751436'></script>
 
 </body>
 </html>
