@@ -906,30 +906,53 @@ async def daily_status_handler(request):
     try:
         data = await request.json()
         raw_id = data.get("user_id")
-        user_id = int(raw_id) if str(raw_id).isdigit() else raw_id
         
-        user = db.users.find_one({"user_id": user_id})
+        # ID-ni həm integer, həm string kimi hazırlayırıq
+        try:
+            val_int = int(raw_id)
+        except (ValueError, TypeError):
+            val_int = None
+        val_str = str(raw_id)
+
+        # Bazada həm user_id, həm telegram_id, həm int, həm də string kimi axtarırıq
+        user = db.users.find_one({
+            "$or": [
+                {"user_id": val_int},
+                {"user_id": val_str},
+                {"telegram_id": val_int},
+                {"telegram_id": val_str}
+            ]
+        })
+
         if not user:
-            return web.json_response({"success": False, "error": "İstifadəçi tapılmadı"}, status=404, headers=CORS_HEADERS)
-            
+            # Əgər mövcud deyilsə avtomatik yaradırıq
+            new_user = {
+                "user_id": val_int if val_int is not None else val_str,
+                "coins": 0.0,
+                "last_checkin_date": "",
+                "checkin_streak": 0
+            }
+            db.users.insert_one(new_user)
+            user = new_user
+
         today_str = datetime.utcnow().strftime('%Y-%m-%d')
         last_checkin_str = user.get("last_checkin_date", "")
         streak = user.get("checkin_streak", 0)
-        
+
         if last_checkin_str:
             last_date = datetime.strptime(last_checkin_str, '%Y-%m-%d')
             today_date = datetime.strptime(today_str, '%Y-%m-%d')
             if (today_date - last_date).days > 1:
                 streak = 0
-        
+
         already_claimed = (last_checkin_str == today_str)
         if streak >= 7 and not already_claimed:
             streak = 0
-            
+
         next_streak = streak + 1 if not already_claimed else streak
         if next_streak > 7:
             next_streak = 7
-            
+
         return web.json_response({
             "success": True,
             "already_claimed": already_claimed,
@@ -940,16 +963,32 @@ async def daily_status_handler(request):
     except Exception as e:
         return web.json_response({"success": False, "error": str(e)}, status=500, headers=CORS_HEADERS)
 
+
 async def claim_daily_handler(request):
     if request.method == "OPTIONS":
         return web.Response(headers=CORS_HEADERS)
     try:
         data = await request.json()
         raw_id = data.get("user_id")
-        user_id = int(raw_id) if str(raw_id).isdigit() else raw_id
         watched_ad = data.get("watched_ad", False)
 
-        user = db.users.find_one({"user_id": user_id})
+        try:
+            val_int = int(raw_id)
+        except (ValueError, TypeError):
+            val_int = None
+        val_str = str(raw_id)
+
+        # Bazada həm user_id, həm telegram_id, həm int, həm də string kimi axtarırıq
+        query = {
+            "$or": [
+                {"user_id": val_int},
+                {"user_id": val_str},
+                {"telegram_id": val_int},
+                {"telegram_id": val_str}
+            ]
+        }
+        
+        user = db.users.find_one(query)
         if not user:
             return web.json_response({"success": False, "error": "İstifadəçi tapılmadı"}, status=404, headers=CORS_HEADERS)
 
