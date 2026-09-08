@@ -346,6 +346,58 @@ async def check_user(request):
 
     return cors_json_response({"is_registered": False})
 
+async def get_referrals_handler(request):
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
+    try:
+        data = await request.json()
+        raw_id = data.get("user_id")
+
+        try:
+            val_int = int(raw_id)
+        except (ValueError, TypeError):
+            val_int = None
+        val_str = str(raw_id)
+
+        user = db.users.find_one({
+            "$or": [
+                {"user_id": val_int},
+                {"user_id": val_str},
+                {"telegram_id": val_int},
+                {"telegram_id": val_str}
+            ]
+        })
+
+        if not user:
+            return web.json_response({"success": False, "referrals": []}, headers=CORS_HEADERS)
+
+        target_id = user.get("user_id") or user.get("telegram_id")
+        
+        # Sizi dəvət edən kimi qeyd edənləri tapırıq
+        referrals_cursor = db.users.find({
+            "$or": [
+                {"invited_by": target_id},
+                {"invited_by": val_int},
+                {"invited_by": val_str},
+                {"invited_by": str(target_id)}
+            ]
+        })
+
+        ref_list = []
+        for ref in referrals_cursor:
+            ref_list.append({
+                "first_name": ref.get("username", "İstifadəçi"),
+                "ads_watched": ref.get("watched_ads", 0),
+                "completed": ref.get("watched_ads", 0) >= 10
+            })
+
+        return web.json_response({
+            "success": True,
+            "referrals": ref_list
+        }, headers=CORS_HEADERS)
+
+    except Exception as e:
+        return web.json_response({"success": False, "error": str(e)}, status=500, headers=CORS_HEADERS)
 
 async def register_user(request):
     """Köhnə qeydiyyat endpointi (geriyə uyğunluq üçün)"""
@@ -870,6 +922,8 @@ async def start_web_server():
     app.router.add_options("/api/daily_status", daily_status_handler)
     app.router.add_post("/api/claim_daily", claim_daily_handler)
     app.router.add_options("/api/claim_daily", claim_daily_handler)
+    app.router.add_post("/get_referrals", get_referrals_handler)
+    app.router.add_options("/get_referrals", get_referrals_handler)
 
     runner = web.AppRunner(app)
     await runner.setup()
