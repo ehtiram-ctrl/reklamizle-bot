@@ -894,7 +894,15 @@ async def main():
     
     asyncio.create_task(wheel_scheduler())
     await dp.start_polling(bot, skip_updates=True)
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+}
+
 async def daily_status_handler(request):
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
     try:
         data = await request.json()
         raw_id = data.get("user_id")
@@ -902,7 +910,7 @@ async def daily_status_handler(request):
         
         user = db.users.find_one({"user_id": user_id})
         if not user:
-            return web.json_response({"success": False, "error": "İstifadəçi tapılmadı"}, status=404)
+            return web.json_response({"success": False, "error": "İstifadəçi tapılmadı"}, status=404, headers=CORS_HEADERS)
             
         today_str = datetime.utcnow().strftime('%Y-%m-%d')
         last_checkin_str = user.get("last_checkin_date", "")
@@ -928,11 +936,13 @@ async def daily_status_handler(request):
             "current_streak": next_streak,
             "regular_reward": DAILY_REGULAR_REWARDS[next_streak - 1],
             "ad_reward": DAILY_AD_REWARDS[next_streak - 1]
-        })
+        }, headers=CORS_HEADERS)
     except Exception as e:
-        return web.json_response({"success": False, "error": str(e)}, status=500)
+        return web.json_response({"success": False, "error": str(e)}, status=500, headers=CORS_HEADERS)
 
 async def claim_daily_handler(request):
+    if request.method == "OPTIONS":
+        return web.Response(headers=CORS_HEADERS)
     try:
         data = await request.json()
         raw_id = data.get("user_id")
@@ -941,14 +951,14 @@ async def claim_daily_handler(request):
 
         user = db.users.find_one({"user_id": user_id})
         if not user:
-            return web.json_response({"success": False, "error": "İstifadəçi tapılmadı"}, status=404)
+            return web.json_response({"success": False, "error": "İstifadəçi tapılmadı"}, status=404, headers=CORS_HEADERS)
 
         today_str = datetime.utcnow().strftime('%Y-%m-%d')
         last_checkin_str = user.get("last_checkin_date", "")
         streak = user.get("checkin_streak", 0)
 
         if last_checkin_str == today_str:
-            return web.json_response({"success": False, "error": "Bu günün bonusunu artıq almısınız!"}, status=400)
+            return web.json_response({"success": False, "error": "Bu günün bonusunu artıq almısınız!"}, status=400, headers=CORS_HEADERS)
 
         if last_checkin_str:
             last_date = datetime.strptime(last_checkin_str, '%Y-%m-%d')
@@ -979,9 +989,9 @@ async def claim_daily_handler(request):
             "reward": reward_amount,
             "new_balance": new_balance,
             "message": f"Təbriklər! {streak}-ci gün bonusu olaraq {reward_amount} COIN qazandınız."
-        })
+        }, headers=CORS_HEADERS)
     except Exception as e:
-        return web.json_response({"success": False, "error": str(e)}, status=500)
+        return web.json_response({"success": False, "error": str(e)}, status=500, headers=CORS_HEADERS)
 
 if __name__ == '__main__':
     asyncio.run(main())
